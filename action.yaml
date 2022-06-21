@@ -37,13 +37,15 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         levo test-conformance --schema "${{ inputs.schema }}" --target-url "${{ inputs.target }}" | tee /tmp/conformance.log
-        SUCCESS=$(grep -oEi "([0-9]+) passed, ([0-9]+) failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
-        FAILED=$(grep -oEi "([0-9]+) passed, ([0-9]+) failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
+        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
+        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
-    - run:
-        if echo ${{ inputs.fail-on-failed-tests == 'true' && steps.run-conformance-test.outputs.failed > 0 }} | grep -c "true"; then
+    - run: |
+        echo ${{steps.run-conformance-test.outputs.failed}} Failed Test Cases
+        echo ${{steps.run-conformance-test.outputs.success}} Success Test Cases
+        if ${{ inputs.fail-on-failed-tests == true && steps.run-conformance-test.outputs.failed > 0 }}; then
           exit 1
         fi
       shell: bash
