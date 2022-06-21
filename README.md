@@ -31,8 +31,8 @@ This action will generate two output fields:
 ```yaml
 outputs:
   success:
-    description: 'Succeded test cases'
+    description: '# of succesful test cases'
   failed:
-    description: 'failed test cases'
+    description: '# of failed test cases'
 ```
 
