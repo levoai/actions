@@ -1,0 +1,51 @@
+name: "Levo Conformance Action"
+description: "Run Levo conformance tests in your Github workflows"
+inputs:
+  schema:
+    description: 'URL or path to the OAS schema file'
+    required: true
+  target:
+    description: 'Target URL to the unit under test'
+    required: true
+  authorization-key:
+    description: 'Authorization key for CLI to run. Get it from https://app.levo.ai/settings/keys'
+    required: true
+  organization-id:
+    description: 'Levo Organization ID'
+    required: true
+  fail-on-failed-tests:  # id of input
+    description: 'Fail action on failed test cases. Default: true'
+    required: true
+    default: true
+outputs:
+  success:
+    description: 'Succeded test cases'
+    value: ${{ steps.run-conformance-test.outputs.success }}
+  failed:
+    description: 'failed test cases'
+    value: ${{ steps.run-conformance-test.outputs.failed }}
+runs:
+  using: 'composite'
+  steps:
+    - id: run-conformance-test
+      run: |
+        # Enable aliases since this is non-interactive shell
+        shopt -s expand_aliases
+        export LOCAL_UID=`id -u`
+        export LOCAL_GID=`id -g`
+        alias levo="sudo docker run --rm --add-host=host.docker.internal:`ip route|awk '/docker0/ { print $9 }'` --mount type=bind,source=$HOME/.config/configstore,target=/home/levo/.config/configstore -v $PWD:/home/levo/work:rw -e LEVO_BASE_URL=https://api.dev.levo.ai -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color -t levoai/levo"
+        levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
+        set +e
+        levo test-conformance --schema "${{ inputs.schema }}" --target-url "${{ inputs.target }}" | tee /tmp/conformance.log
+        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
+        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
+        echo "::set-output name=success::$(echo $SUCCESS)"
+        echo "::set-output name=failed::$(echo $FAILED)"
+      shell: bash
+    - run: |
+        echo ${{steps.run-conformance-test.outputs.failed}} Failed Test Cases
+        echo ${{steps.run-conformance-test.outputs.success}} Success Test Cases
+        if ${{ inputs.fail-on-failed-tests == true && steps.run-conformance-test.outputs.failed > 0 }}; then
+          exit 1
+        fi
+      shell: bash
