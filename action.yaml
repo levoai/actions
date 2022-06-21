@@ -43,8 +43,7 @@ runs:
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
     - run:
-        if echo ${{ inputs.fail-on-failed-tests == 'true' && steps.run-conformance-test.outputs.failed > 0 }} | grep -c "true"
-        then
+        if echo ${{ inputs.fail-on-failed-tests == 'true' && steps.run-conformance-test.outputs.failed > 0 }} | grep -c "true"; then
           exit 1
         fi
       shell: bash
