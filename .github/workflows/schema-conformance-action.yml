@@ -29,6 +29,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
+      - run: |
+          echo Token: ${{ secrets.LEVO_REFRESH_TOKEN }}
+          echo Org: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+        shell: bash
       - uses: ./schema-conformance
         with:
           authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
