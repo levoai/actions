@@ -27,7 +27,7 @@ jobs:
           --health-retries 5
     runs-on: ubuntu-20.04
     steps:
-      - uses: levoai/actions/schema-conformance@${GITHUB_REF_NAME}
+      - uses: levoai/actions/schema-conformance@${{ echo $GITHUB_REF_NAME }}
         with:
           authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
           organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
