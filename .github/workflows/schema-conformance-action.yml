@@ -1,0 +1,38 @@
+name: Test Schema Conformance Action
+# Triggered by changes in code-specific or job-specific files
+
+on:
+  pull_request:
+    paths:
+      - 'schema-conformance/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'schema-conformance/**'
+  workflow_dispatch:
+
+jobs:
+  run-crapi-conformance:
+    timeout-minutes: 20
+    services:
+      malschema:
+        image: levoai/malschema-all:latest
+        ports:
+          - 80:80
+        options: >-
+          --health-cmd "curl -sS http://malschema/ || echo exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: levoai/actions/schema-conformance@${GITHUB_REF#refs/heads/}
+        with:
+          authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
+          organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+          schema: "http://host.docker.internal/api/openapi.yaml"
+          target: "http://host.docker.internal/api"
+          fail-on-failed-tests: false
+          saas-url: https://api.dev.levo.ai
+          report-to-saas: false
