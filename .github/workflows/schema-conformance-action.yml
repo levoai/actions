@@ -30,8 +30,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
       - run: |
-          echo Token: ${{ secrets.LEVO_REFRESH_TOKEN }}
-          echo Org: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+          echo Token: $LEVO_REFRESH_TOKEN
+          echo Org: $LEVO_CI_ORGANIZATION_ID
         shell: bash
       - uses: ./schema-conformance
         with:
