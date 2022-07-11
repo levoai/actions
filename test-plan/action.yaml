@@ -54,6 +54,7 @@ runs:
         CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}"'
         if ${{ inputs.env != '' }}; then
           echo ${{ inputs.env }} >> env_from_secrets.yaml
+          cat env_from_secrets.yaml
           CMD=$(echo $CMD --env-file env_from_secrets.yaml)
         fi
         if ${{ inputs.report != true }}; then
