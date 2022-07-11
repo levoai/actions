@@ -53,9 +53,9 @@ runs:
         set +e
         CMD='levo test --test-plan "${{ inputs.plan-lrn }}" --target-url "${{ inputs.target }}"'
         if ${{ inputs.env != '' }}; then
-          echo ${{ inputs.env }} >> /tmp/env.yaml
-          CMD=$(echo $CMD --env-file /tmp/env.yaml)
-        fi 
+          echo ${{ inputs.env }} >> env_from_secrets.yaml
+          CMD=$(echo $CMD --env-file env_from_secrets.yaml)
+        fi
         if ${{ inputs.report != true }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
