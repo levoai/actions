@@ -1,4 +1,4 @@
-name: Test Schema Conformance Action
+name: Test Plan Action
 # Triggered by changes in code-specific or job-specific files
 
 on:
