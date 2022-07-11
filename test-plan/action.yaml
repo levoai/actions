@@ -52,6 +52,8 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}"'
+        echo "Inputs Env"
+        echo ${{ inputs.env }}
         if ${{ inputs.env != '' }}; then
           echo ${{ inputs.env }} >> env_from_secrets.yaml
           cat env_from_secrets.yaml
