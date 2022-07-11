@@ -40,8 +40,8 @@ runs:
   using: 'composite'
   steps:
     - uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
+      with:
+        fetch-depth: 1
     - id: run-test-plan
       run: |
         # Enable aliases since this is non-interactive shell
