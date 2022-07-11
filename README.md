@@ -90,6 +90,6 @@ outputs:
   failed:
     description: '# of failed test cases'
   skipped:
-    description: '# of failed test cases'
+    description: '# of skipped test cases'
 ```
 
