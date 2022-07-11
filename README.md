@@ -30,10 +30,10 @@ This action will require you to have a Levo account and provide a target url and
     # URL for the instance of the application under test.
     target: ''
 
-    # Base64 encoded environment file content.
+    # [OPTIONAL] Base64 encoded environment file content.
     base64_env: ''
 
-    # If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
 ```
 <!-- end usage -->
@@ -72,10 +72,10 @@ This action will require you to have a Levo account and provide a target url and
     # Test plan LRN. You can get this value from the test plan section in Saas.
     plan: ''
 
-    # Base64 encoded environment file content.
+    # [OPTIONAL] Base64 encoded environment file content.
     base64_env: ''
 
-    # If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
 ```
 <!-- end usage -->
