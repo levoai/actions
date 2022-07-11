@@ -31,11 +31,14 @@ inputs:
     default: true
 outputs:
   success:
-    description: 'Succeded test cases'
+    description: 'Succeeded test cases'
     value: ${{ steps.run-test-plan.outputs.success }}
   failed:
-    description: 'failed test cases'
+    description: 'Failed test cases'
     value: ${{ steps.run-test-plan.outputs.failed }}
+  skipped:
+    description: 'Skipped test cases'
+    value: ${{ steps.run-test-plan.outputs.skipped }}
 runs:
   using: 'composite'
   steps:
@@ -61,14 +64,17 @@ runs:
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         eval $CMD | tee /tmp/plan.log
-        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/plan.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
-        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/plan.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
+        SUCCESS=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests passed" | grep -oEi "[0-9]+")
+        FAILED=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests failed" | grep -oEi "[0-9]+")
+        SKIPPED=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests skipped" | grep -oEi "[0-9]+")
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
+        echo "::set-output name=skipped::$(echo $SKIPPED)"
       shell: bash
     - run: |
         echo ${{steps.run-test-plan.outputs.failed}} Failed Test Cases
         echo ${{steps.run-test-plan.outputs.success}} Success Test Cases
+        echo ${{steps.run-test-plan.outputs.skipped}} Skipped Test Cases
         if ${{ inputs.fail-on-failed-tests == true && steps.run-test-plan.outputs.failed > 0 }}; then
           exit 1
         fi
