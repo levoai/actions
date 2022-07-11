@@ -17,17 +17,25 @@ inputs:
     description: 'Fail action on failed test cases. Default: true'
     required: true
     default: true
-  env-file:
-    description: 'Fail action on failed test cases. Default: true'
+  env:
+    description: 'environment.yaml file content '
     required: false
     default: ''
+  saas-url:
+    description: 'Saas url to report results back'
+    required: true
+    default: "https://api.levo.ai"
+  report:
+    description: 'Report schema conformance run result to Saas'
+    required: false
+    default: true
 outputs:
   success:
     description: 'Succeded test cases'
-    value: ${{ steps.run-conformance-test.outputs.success }}
+    value: ${{ steps.run-test-plan.outputs.success }}
   failed:
     description: 'failed test cases'
-    value: ${{ steps.run-conformance-test.outputs.failed }}
+    value: ${{ steps.run-test-plan.outputs.failed }}
 runs:
   using: 'composite'
   steps:
@@ -44,25 +52,23 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test --test-plan "${{ inputs.plan-lrn }}" --target-url "${{ inputs.target }}"'
-        if ${{ inputs.env-file != '' }}; then
-          ENVPATH=${{inputs.env-file}}
-          if [[ $ENVPATH == /*]]; then
-            ENVPATH=$(pwd)$ENVPATH
-          else
-            ENVPATH=$(pwd)/$ENVPATH
-          fi
-          CMD=$(echo $CMD --env $ENVPATH)
+        if ${{ inputs.env != '' }}; then
+          echo ${{ inputs.env }} >> /tmp/env.yaml
+          CMD=$(echo $CMD --env /tmp/env.yaml
         fi 
-        eval $CMD | tee /tmp/conformance.log
-        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
-        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
+        if ${{ inputs.report != true }}; then
+          CMD=$(echo $CMD --disable-reporting-to-saas)
+        fi
+        eval $CMD | tee /tmp/plan.log
+        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/plan.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
+        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/plan.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
     - run: |
-        echo ${{steps.run-conformance-test.outputs.failed}} Failed Test Cases
-        echo ${{steps.run-conformance-test.outputs.success}} Success Test Cases
-        if ${{ inputs.fail-on-failed-tests == true && steps.run-conformance-test.outputs.failed > 0 }}; then
+        echo ${{steps.run-test-plan.outputs.failed}} Failed Test Cases
+        echo ${{steps.run-test-plan.outputs.success}} Success Test Cases
+        if ${{ inputs.fail-on-failed-tests == true && steps.run-test-plan.outputs.failed > 0 }}; then
           exit 1
         fi
       shell: bash

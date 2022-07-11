@@ -21,7 +21,7 @@ inputs:
     description: 'Saas url to report results back'
     required: true
     default: "https://api.levo.ai"
-  report-to-saas:
+  report:
     description: 'Report schema conformance run result to Saas'
     required: false
     default: true
@@ -45,7 +45,7 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test-conformance --schema "${{ inputs.schema }}" --target-url "${{ inputs.target }}"'
-        if ${{ inputs.report-to-saas != true }}; then
+        if ${{ inputs.report != true }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         eval $CMD | tee /tmp/conformance.log
