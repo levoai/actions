@@ -55,7 +55,7 @@ runs:
         if ${{ inputs.env != '' }}; then
           rm -f /tmp/env.yaml
           echo ${{ inputs.env }} >> /tmp/env.yaml
-          CMD=$(echo $CMD --env /tmp/env.yaml)
+          CMD=$(echo $CMD --env-file /tmp/env.yaml)
         fi 
         eval $CMD | tee /tmp/conformance.log
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
