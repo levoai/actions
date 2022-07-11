@@ -1,3 +1,10 @@
+- [Levo Actions](#levo-actions)
+  - [Schema Conformance Action](#schema-conformance-action)
+    - [Usage](#usage)
+    - [Output](#output)
+  - [Test Plan Action](#test-plan-action)
+    - [Usage](#usage-1)
+    - [Output](#output-1)
 # Levo Actions
 
 ## Schema Conformance Action
