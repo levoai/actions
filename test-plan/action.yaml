@@ -17,8 +17,8 @@ inputs:
     description: 'Fail action on failed test cases. Default: true'
     required: true
     default: true
-  env:
-    description: 'environment.yaml file content '
+  base64_env:
+    description: 'environment.yaml file content base64 encoded'
     required: false
     default: ''
   saas-url:
@@ -52,10 +52,8 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}"'
-        echo "Inputs Env"
-        echo ${{ inputs.env }}
-        if ${{ inputs.env != '' }}; then
-          echo ${{ inputs.env }} >> env_from_secrets.yaml
+        if ${{ inputs.base64_env != '' }}; then
+          echo ${{ inputs.base64_env }} | base64 -d > env_from_secrets.yaml
           cat env_from_secrets.yaml
           CMD=$(echo $CMD --env-file env_from_secrets.yaml)
         fi

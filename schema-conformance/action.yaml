@@ -25,8 +25,8 @@ inputs:
     description: 'Report schema conformance run result to Saas'
     required: false
     default: true
-  env:
-    description: 'environment.yaml file content '
+  base64_env:
+    description: 'environment.yaml file content base64 encoded'
     required: false
     default: ''
 outputs:
@@ -52,8 +52,9 @@ runs:
         if ${{ inputs.report != true }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
-        if ${{ inputs.env != '' }}; then
-          echo ${{ inputs.env }} >> env_from_secrets.yaml
+        if ${{ inputs.base64_env != '' }}; then
+          echo ${{ inputs.base64_env }} | base64 -d > env_from_secrets.yaml
+          cat env_from_secrets.yaml
           CMD=$(echo $CMD --env-file env_from_secrets.yaml)
         fi
         eval $CMD | tee /tmp/conformance.log

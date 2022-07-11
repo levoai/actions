@@ -27,13 +27,13 @@ jobs:
       - uses: ./test-plan
         with:
           plan: "continuous_testing_levo_ai:ws/continuous_testing:app/Demo_crAPI:tp/Demo_crAPI"
-          env: ${{ secrets.TEST_PLAN_ENV }}
+          base64_env: ${{ secrets.TEST_PLAN_ENV }}
           authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
           organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
           target: http://crapi.levo.ai
           fail-on-failed-tests: false
           saas-url: https://api.dev.levo.ai
-          report-to-saas: false
+          report: false
 
   
   
