@@ -30,11 +30,13 @@ This action will require you to have a Levo account and provide a target url and
     # URL for the instance of the application under test.
     target: ''
 
-    # [OPTIONAL] Base64 encoded environment file content.
-    base64_env: ''
-
     # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
+
+    # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    cli_extra_args: '-H "Authorization: Bearer 1234" --verbosity INFO'
+
+    # 
 ```
 <!-- end usage -->
 

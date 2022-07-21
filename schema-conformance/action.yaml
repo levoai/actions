@@ -25,10 +25,10 @@ inputs:
     description: 'Report schema conformance run result to Saas'
     required: false
     default: true
-  base64_env:
-    description: 'environment.yaml file content base64 encoded'
+  cli_extra_args:
+    description: 'CLI extra arguments. E.g: -H "Authorization: Bearer 123'
     required: false
-    default: ''
+    default: ""
 outputs:
   success:
     description: 'Succeded test cases'
@@ -52,11 +52,7 @@ runs:
         if ${{ inputs.report != true }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
-        if ${{ inputs.base64_env != '' }}; then
-          echo ${{ inputs.base64_env }} | base64 -d > env_from_secrets.yaml
-          cat env_from_secrets.yaml
-          CMD=$(echo $CMD --env-file env_from_secrets.yaml)
-        fi
+        CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
         eval $CMD | tee /tmp/conformance.log
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
         FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
