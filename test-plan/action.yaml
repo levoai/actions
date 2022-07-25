@@ -29,6 +29,10 @@ inputs:
     description: 'Report schema conformance run result to Saas'
     required: false
     default: true
+  cli_extra_args:
+    description: 'CLI extra arguments. E.g: -H "Authorization: Bearer 123'
+    required: false
+    default: ""
 outputs:
   success:
     description: 'Succeeded test cases'
@@ -60,9 +64,10 @@ runs:
           cat env_from_secrets.yaml
           CMD=$(echo $CMD --env-file env_from_secrets.yaml)
         fi
-        if ${{ inputs.report != true }}; then
+        if ${{ ! inputs.report }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
+        CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
         eval $CMD | tee /tmp/plan.log
         SUCCESS=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests passed" | grep -oEi "[0-9]+")
         FAILED=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests failed" | grep -oEi "[0-9]+")

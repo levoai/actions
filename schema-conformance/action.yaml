@@ -49,10 +49,11 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test-conformance --schema "${{ inputs.schema }}" --target-url "${{ inputs.target }}"'
-        if ${{ inputs.report != true }}; then
+        if ${{ !inputs.report }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
+        echo Running: $CMD
         eval $CMD | tee /tmp/conformance.log
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
         FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
