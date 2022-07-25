@@ -33,10 +33,8 @@ This action will require you to have a Levo account and provide a target url and
     # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
 
-    # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity
-    cli_extra_args: '-H "Authorization: Bearer 1234" --verbosity INFO'
-
-    # 
+    # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity. Please use \\\˝ to escape quotes.
+    cli_extra_args: "-H \\\"Authorization: Bearer 1234\\\" --verbosity INFO"
 ```
 <!-- end usage -->
 
@@ -79,6 +77,9 @@ This action will require you to have a Levo account and provide a target url and
 
     # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
+
+    # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity. Please use \\\˝ to escape quotes.
+    cli_extra_args: "-H \\\"Authorization: Bearer 1234\\\" --verbosity INFO"
 ```
 <!-- end usage -->
 

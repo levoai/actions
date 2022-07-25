@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-crapi-conformance:
+  run-malschema-conformance:
     environment: Dev
     timeout-minutes: 20
     services:
