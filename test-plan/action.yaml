@@ -55,7 +55,7 @@ runs:
         shopt -s expand_aliases
         export LOCAL_UID=`id -u`
         export LOCAL_GID=`id -g`
-        alias levo="sudo docker run --rm --add-host=host.docker.internal:`ip route|awk '/docker0/ { print $9 }'` --mount type=bind,source=$HOME/.config/configstore,target=/home/levo/.config/configstore -v $PWD:/home/levo/work:rw -e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color -t levoai/levo"
+        alias levo="sudo docker run --rm --add-host=host.docker.internal:`ip route|awk '/docker0/ { print $9 }'` --mount type=bind,source=$HOME/.config/configstore,target=/home/levo/.config/configstore -v $PWD:/home/levo/work:rw -e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color levoai/levo"
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}"'

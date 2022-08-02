@@ -18,7 +18,7 @@ This action will require you to have a Levo account and provide a target url and
 ```yaml
 - uses: levoai/actions/schema-conformance@v1-beta
   with:
-    # Authorization key required to exetuce the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
+    # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
     authorization-key: ''
 
     # The ID of your organization in Levo dashboard. Please refer to https://app.levo.ai/settings/organization to get your organization id.
@@ -30,7 +30,7 @@ This action will require you to have a Levo account and provide a target url and
     # URL for the instance of the application under test.
     target: ''
 
-    # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    # [OPTIONAL] If you decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
 
     # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity. Please use \\\˝ to escape quotes.
@@ -60,7 +60,7 @@ This action will require you to have a Levo account and provide a target url and
 ```yaml
 - uses: levoai/actions/test-plan@v1-beta
   with:
-    # Authorization key required to exetuce the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
+    # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
     authorization-key: ''
 
     # The ID of your organization in Levo dashboard. Please refer to https://app.levo.ai/settings/organization to get your organization id.
@@ -75,7 +75,7 @@ This action will require you to have a Levo account and provide a target url and
     # [OPTIONAL] Base64 encoded environment file content.
     base64_env: ''
 
-    # [OPTIONAL] If youd decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    # [OPTIONAL] If you decide not to report the result of this execution back to Saas set this value to false. Default: true.
     report: true
 
     # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity. Please use \\\˝ to escape quotes.
