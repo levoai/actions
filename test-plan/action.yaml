@@ -64,7 +64,7 @@ runs:
           cat env_from_secrets.yaml
           CMD=$(echo $CMD --env-file env_from_secrets.yaml)
         fi
-        if ${{ ! inputs.report }}; then
+        if ${{ inputs.report != 'true' }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
