@@ -49,7 +49,7 @@ runs:
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
         CMD='levo test-conformance --schema "${{ inputs.schema }}" --target-url "${{ inputs.target }}"'
-        if ${{ !inputs.report }}; then
+        if ${{ inputs.report != 'true' }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
