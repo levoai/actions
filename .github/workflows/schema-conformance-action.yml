@@ -12,6 +12,9 @@ on:
       - 'schema-conformance/**'
   workflow_dispatch:
 
+permissions:
+  checks: write
+
 jobs:
   run-malschema-conformance:
     environment: Dev
