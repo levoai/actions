@@ -77,6 +77,7 @@ runs:
         junit_files: '**/reports/*.xml'
         fail_on: 'test failures'
         check_run_annotations: 'none'
+        check_name: "Levo Schema Conformance Results"
     - name: Publish Test Results
       if: ${{ !input.fail-on-failed-tests }}
       uses: EnricoMi/publish-unit-test-result-action@v2
@@ -85,3 +86,4 @@ runs:
         junit_files: '**/reports/*.xml'
         fail_on: 'nothing'
         check_run_annotations: 'none'
+        check_name: "Levo Schema Conformance Results"
