@@ -70,9 +70,18 @@ runs:
     #     fail_on_failure: ${{ inputs.fail-on-failed-tests }}
     #     detailed_summary: true
     - name: Publish Test Results
+      if: ${{ input.fail-on-failed-tests }}
       uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
       with:
         junit_files: '**/reports/*.xml'
-        fail_on: ${{ input.fail-on-failed-tests ? 'test failures' : 'nothing' }}
+        fail_on: 'test failures'
+        check_run_annotations: 'none'
+    - name: Publish Test Results
+      if: ${{ !input.fail-on-failed-tests }}
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        junit_files: '**/reports/*.xml'
+        fail_on: 'nothing'
         check_run_annotations: 'none'
