@@ -74,4 +74,5 @@ runs:
       if: always()
       with:
         junit_files: '**/reports/*.xml'
-        fail_on: 'nothing'
+        fail_on: ${{ input.fail-on-failed-tests ? 'test failures' : 'nothing' }}
+        check_run_annotations: 'none'
