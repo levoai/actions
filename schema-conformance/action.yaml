@@ -69,21 +69,20 @@ runs:
     #     commit: ${{github.event.workflow_run.head_sha}}
     #     fail_on_failure: ${{ inputs.fail-on-failed-tests }}
     #     detailed_summary: true
+    - id: reporting
+      run: |
+        if ${{ inputs.fail-on-failed-tests == 'true' }}; then
+          echo "::set-output name=fail_on::$(echo 'test failures')"
+        fi
+        if ${{ inputs.fail-on-failed-tests != 'true' }}; then
+          echo "::set-output name=fail_on::$(echo 'nothing')"
+        fi
+      shell: bash
     - name: Publish Test Results
-      if: ${{ input.fail-on-failed-tests }}
-      uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
       with:
         junit_files: '**/reports/*.xml'
-        fail_on: 'test failures'
-        check_run_annotations: 'none'
-        check_name: "Levo Schema Conformance Results"
-    - name: Publish Test Results
-      if: ${{ !input.fail-on-failed-tests }}
-      uses: EnricoMi/publish-unit-test-result-action@v2
-      if: always()
-      with:
-        junit_files: '**/reports/*.xml'
-        fail_on: 'nothing'
+        fail_on: ${{ steps.reporting.outputs.fail_on }}
         check_run_annotations: 'none'
         check_name: "Levo Schema Conformance Results"
