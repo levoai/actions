@@ -62,10 +62,16 @@ runs:
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
-    - uses: mikepenz/action-junit-report@v3.5.0
-      if: always() # always run even if the previous step fails
+    # - uses: mikepenz/action-junit-report@v3.5.0
+    #   if: always() # always run even if the previous step fails
+    #   with:
+    #     report_paths: '**/reports/*.xml'
+    #     commit: ${{github.event.workflow_run.head_sha}}
+    #     fail_on_failure: ${{ inputs.fail-on-failed-tests }}
+    #     detailed_summary: true
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
       with:
-        report_paths: '**/reports/*.xml'
-        commit: ${{github.event.workflow_run.head_sha}}
-        fail_on_failure: ${{ inputs.fail-on-failed-tests }}
-        detailed_summary: true
+        junit_files: '**/reports/*.xml'
+        fail_on: 'nothing'
