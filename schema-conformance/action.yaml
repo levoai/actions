@@ -55,6 +55,7 @@ runs:
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
         echo Running: $CMD
         eval $CMD | tee /tmp/conformance.log
+        ls -all
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
         FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
         echo "::set-output name=success::$(echo $SUCCESS)"
