@@ -52,7 +52,7 @@ runs:
         if ${{ inputs.report != 'true' }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
-        CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
+        CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
         echo Running: $CMD
         eval $CMD | tee /tmp/conformance.log
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
@@ -60,9 +60,9 @@ runs:
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
-    - uses: mikepenz/action-junit-report@v3
+    - uses: mikepenz/action-junit-report@v3.5.0
       if: always() # always run even if the previous step fails
       with:
-        report_paths: '**/build/test-results/test/TEST-*.xml'
-        fail-on-failures: ${{ inputs.fail-on-failed-tests }}
+        report_paths: '/home/levo/work/reports/*.xml'
+        fail_on_failure: ${{ inputs.fail-on-failed-tests }}
         detailed_summary: true
