@@ -32,10 +32,19 @@ inputs:
 outputs:
   success:
     description: 'Succeded test cases'
-    value: ${{ steps.run-conformance-test.outputs.success }}
+    value: ${{ steps.map-outputs.outputs.success }}
   failed:
     description: 'Failed test cases'
-    value: ${{ steps.run-conformance-test.outputs.failed }}
+    value: ${{ steps.map-outputs.outputs.failed }}
+  error:
+    description: 'Errored test cases'
+    value: ${{ steps.map-outputs.outputs.error }}
+  skip:
+    description: 'Skipped test cases'
+    value: ${{ steps.map-outputs.outputs.skip }}
+  total:
+    description: 'Total test cases'
+    value: ${{ steps.map-outputs.outputs.total }}
 runs:
   using: 'composite'
   steps:
@@ -56,19 +65,11 @@ runs:
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
         echo Running: $CMD
         eval $CMD | tee /tmp/conformance.log
-        ls -all
         SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
         FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
         echo "::set-output name=success::$(echo $SUCCESS)"
         echo "::set-output name=failed::$(echo $FAILED)"
       shell: bash
-    # - uses: mikepenz/action-junit-report@v3.5.0
-    #   if: always() # always run even if the previous step fails
-    #   with:
-    #     report_paths: '**/reports/*.xml'
-    #     commit: ${{github.event.workflow_run.head_sha}}
-    #     fail_on_failure: ${{ inputs.fail-on-failed-tests }}
-    #     detailed_summary: true
     - id: reporting
       run: |
         if ${{ inputs.fail-on-failed-tests == 'true' }}; then
@@ -79,6 +80,7 @@ runs:
         fi
       shell: bash
     - name: Publish Test Results
+      id: publish-junit
       if: always()
       uses: EnricoMi/publish-unit-test-result-action@v2
       with:
@@ -86,3 +88,15 @@ runs:
         fail_on: ${{ steps.reporting.outputs.fail_on }}
         check_run_annotations: 'none'
         check_name: "Levo Schema Conformance Results"
+    - id: junit-result
+      run: |
+        echo "::set-output name=json::${{ fromJSON( steps.publish-junit.outputs.json ) }}"
+      shell: bash
+    - id: map-outputs
+      run: |
+        echo "::set-output name=success::${{ steps.junit-result.outputs.json.stats.tests_succ }}"
+        echo "::set-output name=failed::${{ steps.junit-result.outputs.json.stats.tests_fail }}"
+        echo "::set-output name=error::${{ steps.junit-result.outputs.json.stats.tests_error }}"
+        echo "::set-output name=skip::${{ steps.junit-result.outputs.json.stats.tests_skip }}"
+        echo "::set-output name=total::${{ steps.junit-result.outputs.json.stats.tests }}"
+      shell: bash
