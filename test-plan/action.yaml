@@ -35,14 +35,20 @@ inputs:
     default: ""
 outputs:
   success:
-    description: 'Succeeded test cases'
-    value: ${{ steps.run-test-plan.outputs.success }}
+    description: 'Succeded test cases'
+    value: ${{ steps.map-outputs.outputs.success }}
   failed:
     description: 'Failed test cases'
-    value: ${{ steps.run-test-plan.outputs.failed }}
+    value: ${{ steps.map-outputs.outputs.failed }}
+  error:
+    description: 'Errored test cases'
+    value: ${{ steps.map-outputs.outputs.error }}
   skipped:
     description: 'Skipped test cases'
-    value: ${{ steps.run-test-plan.outputs.skipped }}
+    value: ${{ steps.map-outputs.outputs.skip }}
+  total:
+    description: 'Total test cases'
+    value: ${{ steps.map-outputs.outputs.total }}
 runs:
   using: 'composite'
   steps:
@@ -55,6 +61,7 @@ runs:
         shopt -s expand_aliases
         export LOCAL_UID=`id -u`
         export LOCAL_GID=`id -g`
+        mkdir $PWD/reports
         alias levo="sudo docker run --rm --add-host=host.docker.internal:`ip route|awk '/docker0/ { print $9 }'` --mount type=bind,source=$HOME/.config/configstore,target=/home/levo/.config/configstore -v $PWD:/home/levo/work:rw -e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color levoai/levo"
         levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
         set +e
@@ -67,20 +74,37 @@ runs:
         if ${{ inputs.report != 'true' }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
-        CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
-        eval $CMD | tee /tmp/plan.log
-        SUCCESS=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests passed" | grep -oEi "[0-9]+")
-        FAILED=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests failed" | grep -oEi "[0-9]+")
-        SKIPPED=$(grep -oEi "[0-9]+ tests passed, [0-9]+ tests failed, [0-9]+ tests skipped" /tmp/plan.log | grep -oEi "[0-9]+ tests skipped" | grep -oEi "[0-9]+")
-        echo "::set-output name=success::$(echo $SUCCESS)"
-        echo "::set-output name=failed::$(echo $FAILED)"
-        echo "::set-output name=skipped::$(echo $SKIPPED)"
+        CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
+        echo Running: $CMD
+        eval $CMD
       shell: bash
-    - run: |
-        echo ${{steps.run-test-plan.outputs.failed}} Failed Test Cases
-        echo ${{steps.run-test-plan.outputs.success}} Success Test Cases
-        echo ${{steps.run-test-plan.outputs.skipped}} Skipped Test Cases
-        if ${{ inputs.fail-on-failed-tests == true && steps.run-test-plan.outputs.failed > 0 }}; then
-          exit 1
+    - id: reporting
+      run: |
+        if ${{ inputs.fail-on-failed-tests == 'true' }}; then
+          echo "::set-output name=fail_on::$(echo 'test failures')"
         fi
+        if ${{ inputs.fail-on-failed-tests != 'true' }}; then
+          echo "::set-output name=fail_on::$(echo 'nothing')"
+        fi
+      shell: bash
+    - name: Publish Test Results
+      id: publish-junit
+      if: always()
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        junit_files: '**/reports/*.xml'
+        fail_on: ${{ steps.reporting.outputs.fail_on }}
+        check_run_annotations: 'none'
+        check_name: "Levo Test Plan Results"
+    - id: junit-result
+      run: |
+        echo "::set-output name=json::${{ fromJSON( steps.publish-junit.outputs.json ) }}"
+      shell: bash
+    - id: map-outputs
+      run: |
+        echo "::set-output name=success::${{ steps.junit-result.outputs.json.stats.tests_succ }}"
+        echo "::set-output name=failed::${{ steps.junit-result.outputs.json.stats.tests_fail }}"
+        echo "::set-output name=error::${{ steps.junit-result.outputs.json.stats.tests_error }}"
+        echo "::set-output name=skip::${{ steps.junit-result.outputs.json.stats.tests_skip }}"
+        echo "::set-output name=total::${{ steps.junit-result.outputs.json.stats.tests }}"
       shell: bash

@@ -39,7 +39,7 @@ outputs:
   error:
     description: 'Errored test cases'
     value: ${{ steps.map-outputs.outputs.error }}
-  skip:
+  skipped:
     description: 'Skipped test cases'
     value: ${{ steps.map-outputs.outputs.skip }}
   total:
@@ -64,11 +64,7 @@ runs:
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
         echo Running: $CMD
-        eval $CMD | tee /tmp/conformance.log
-        SUCCESS=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ passed" | grep -oEi "[0-9]+")
-        FAILED=$(grep -oEi "[0-9]+ passed, [0-9]+ failed" /tmp/conformance.log | grep -oEi "[0-9]+ failed" | grep -oEi "[0-9]+")
-        echo "::set-output name=success::$(echo $SUCCESS)"
-        echo "::set-output name=failed::$(echo $FAILED)"
+        eval $CMD
       shell: bash
     - id: reporting
       run: |
