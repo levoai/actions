@@ -79,6 +79,7 @@ runs:
         eval $CMD
       shell: bash
     - id: reporting
+      if: always()
       run: |
         if ${{ inputs.fail-on-failed-tests == 'true' }}; then
           echo "::set-output name=fail_on::$(echo 'test failures')"
@@ -101,6 +102,7 @@ runs:
         echo "::set-output name=json::${{ fromJSON( steps.publish-junit.outputs.json ) }}"
       shell: bash
     - id: map-outputs
+      if: always()
       run: |
         echo "::set-output name=success::${{ steps.junit-result.outputs.json.stats.tests_succ }}"
         echo "::set-output name=failed::${{ steps.junit-result.outputs.json.stats.tests_fail }}"
