@@ -75,8 +75,8 @@ runs:
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
-        echo Running: $CMD | true
-        eval $CMD
+        echo Running: $CMD
+        eval $CMD | true
       shell: bash
     - id: reporting
       if: always()
