@@ -64,7 +64,8 @@ runs:
         fi
         CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
         echo Running: $CMD
-        eval $CMD | true
+        eval $CMD
+        exit 0
       shell: bash
     - id: reporting
       if: always()
