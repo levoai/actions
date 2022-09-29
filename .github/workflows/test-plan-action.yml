@@ -26,7 +26,7 @@ jobs:
         shell: bash
       - uses: ./test-plan
         with:
-          plan: "continuous_testing_levo_ai:ws/continuous_testing:app/Demo_crAPI:tp/Demo_crAPI"
+          plan: "continuous_testing_levo_ai_auth0:ws/continuous_testing:app/Demo_crAPI:tp/Demo_crAPI"
           base64_env: ${{ secrets.TEST_PLAN_ENV }}
           authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
           organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
