@@ -98,16 +98,12 @@ runs:
         fail_on: ${{ steps.reporting.outputs.fail_on }}
         check_run_annotations: 'none'
         check_name: "Levo Test Plan Results"
-    - id: junit-result
-      run: |
-        echo "::set-output name=json::${{ fromJSON( steps.publish-junit.outputs.json ) }}"
-      shell: bash
     - id: map-outputs
       if: always()
       run: |
-        echo "::set-output name=success::${{ steps.junit-result.outputs.json.stats.tests_succ }}"
-        echo "::set-output name=failed::${{ steps.junit-result.outputs.json.stats.tests_fail }}"
-        echo "::set-output name=error::${{ steps.junit-result.outputs.json.stats.tests_error }}"
-        echo "::set-output name=skip::${{ steps.junit-result.outputs.json.stats.tests_skip }}"
-        echo "::set-output name=total::${{ steps.junit-result.outputs.json.stats.tests }}"
+        echo "::set-output name=success::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_succ }}"
+        echo "::set-output name=failed::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_fail }}"
+        echo "::set-output name=error::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_error }}"
+        echo "::set-output name=skip::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_skip }}"
+        echo "::set-output name=total::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests }}"
       shell: bash
