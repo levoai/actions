@@ -33,6 +33,10 @@ inputs:
     description: 'CLI extra arguments. E.g: -H "Authorization: Bearer 123'
     required: false
     default: ""
+  debug:
+    description: 'Debug action'
+    required: false
+    default: false
 outputs:
   success:
     description: 'Succeded test cases'
@@ -49,6 +53,9 @@ outputs:
   total:
     description: 'Total test cases'
     value: ${{ steps.map-outputs.outputs.total }}
+  json:
+    description: 'EnricoMi/publish-unit-test-result action JSON output'
+    value: ${{ steps.publish-junit.outputs.json }}
 runs:
   using: 'composite'
   steps:
@@ -98,6 +105,9 @@ runs:
         fail_on: ${{ steps.reporting.outputs.fail_on }}
         check_run_annotations: 'none'
         check_name: "Levo Test Plan Results"
+    - if: ${{ inputs.debug }}
+      run: cat $PWD/reports/junit.xml
+      shell: bash
     - id: map-outputs
       if: always()
       run: |

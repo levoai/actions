@@ -49,3 +49,4 @@ jobs:
           saas-url: https://api.dev.levo.ai
           report: false
           cli_extra_args: "-v INFO"
+          debug: true
