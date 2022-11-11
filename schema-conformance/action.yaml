@@ -29,6 +29,10 @@ inputs:
     description: 'CLI extra arguments. E.g: -H "Authorization: Bearer 123'
     required: false
     default: ""
+  debug:
+    description: 'Debug action'
+    required: false
+    default: false
 outputs:
   success:
     description: 'Succeded test cases'
@@ -45,6 +49,9 @@ outputs:
   total:
     description: 'Total test cases'
     value: ${{ steps.map-outputs.outputs.total }}
+  json:
+    description: 'EnricoMi/publish-unit-test-result action JSON output'
+    value: ${{ steps.publish-junit.outputs.json }}
 runs:
   using: 'composite'
   steps:
@@ -86,12 +93,15 @@ runs:
         fail_on: ${{ steps.reporting.outputs.fail_on }}
         check_run_annotations: 'none'
         check_name: "Levo Schema Conformance Results"
+    - if: ${{ inputs.debug }}
+      run: cat $PWD/reports/junit.xml
+      shell: bash
     - id: map-outputs
       if: always()
       run: |
-        echo "::set-output name=success::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_succ }}"
-        echo "::set-output name=failed::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_fail }}"
-        echo "::set-output name=error::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_error }}"
-        echo "::set-output name=skip::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_skip }}"
-        echo "::set-output name=total::${{ fromJSON(steps.publish-junit.outputs.json).stats.tests }}"
+        echo "success=${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_succ }}" >> $GITHUB_OUTPUT
+        echo "failed=${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_fail }}" >> $GITHUB_OUTPUT
+        echo "error=${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_error }}" >> $GITHUB_OUTPUT
+        echo "skip=${{ fromJSON(steps.publish-junit.outputs.json).stats.tests_skip }}" >> $GITHUB_OUTPUT
+        echo "total=${{ fromJSON(steps.publish-junit.outputs.json).stats.tests }}" >> $GITHUB_OUTPUT
       shell: bash

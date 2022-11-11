@@ -39,6 +39,7 @@ jobs:
           echo Org: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
         shell: bash
       - uses: ./schema-conformance
+        id: run-schema-conformance
         with:
           authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
           organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
@@ -48,3 +49,4 @@ jobs:
           saas-url: https://api.dev.levo.ai
           report: false
           cli_extra_args: "-v INFO"
+          debug: true
