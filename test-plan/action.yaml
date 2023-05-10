@@ -1,5 +1,5 @@
-name: "Levo Conformance Action"
-description: "Run Levo conformance tests in your Github workflows"
+name: "Levo Test Action"
+description: "Run Levo Security tests in your Github workflows"
 inputs:
   plan:
     description: 'Test plan LRN'
