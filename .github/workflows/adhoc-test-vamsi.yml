@@ -1,0 +1,31 @@
+name: Run testplan
+# Triggered by changes in code-specific or job-specific files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-crapi-test-plan:
+    environment: Dev
+    timeout-minutes: 20
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - run: |
+          echo Token: ${{ secrets.LEVO_REFRESH_TOKEN }}
+          echo Org: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+        shell: bash
+      - uses: ./test-plan
+        with:
+          plan: "Vamsi_Nerella:ws/vamsi:app/api_zluri_dev:tp/Zluri_fast_test_apr17"
+#          base64_env: ${{ secrets.TEST_PLAN_ENV }}
+          authorization-key: 2OZo37k9a20-4a9Vsc_BOBYkN0RlHExscxWIKgoSKlmer
+          organization-id: cb0649b9-a925-488a-8088-d26ac1866bac
+          target: https://api.zluri.dev/
+          fail-on-failed-tests: false
+          saas-url: https://api.dev.levo.ai
+          report: false
+          cli_extra_args: "-v INFO"
+
+
