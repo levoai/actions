@@ -20,10 +20,6 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
-      - run: |
-          echo Token: ${{ secrets.LEVO_REFRESH_TOKEN }}
-          echo Org: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
-        shell: bash
       - uses: ./test-plan
         with:
           plan: "continuous_testing_levo_ai_auth0:ws/continuous_testing:app/Demo_crAPI:tp/Demo_crAPI"
@@ -35,6 +31,3 @@ jobs:
           saas-url: https://api.dev.levo.ai
           report: false
           cli_extra_args: "-v INFO"
-
-  
-  
