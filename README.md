@@ -16,7 +16,7 @@ This action will require you to have a Levo account and provide a target url and
 
 <!-- start usage -->
 ```yaml
-- uses: levoai/actions/schema-conformance@v1-beta
+- uses: levoai/actions/schema-conformance@v2
   with:
     # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
     authorization-key: ''
@@ -58,7 +58,7 @@ This action will require you to have a Levo account and provide a target url and
 
 <!-- start usage -->
 ```yaml
-- uses: levoai/actions/test-plan@v1-beta
+- uses: levoai/actions/test-plan@v2
   with:
     # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
     authorization-key: ''
