@@ -59,33 +59,49 @@ runs:
         shopt -s expand_aliases
         export LOCAL_UID=`id -u`
         export LOCAL_GID=`id -g`
-        mkdir $PWD/reports
-        docker_engine_version=$(docker version -f '{{range .Server.Components}}{{if eq .Name "Engine"}}{{.Version}}{{end}}{{end}}')
-        IFS=. read major minor patch <<<"${docker_engine_version%%*-}"
-        if [[ $major -gt 20 ]] || [[ $major -eq 20 && $minor -gt 0 ]] || [[ $major -eq 20 && $minor -eq 0 && $patch -ge 4 ]]; then
-          docker_host_ip=host-gateway
-        else
-          docker_host_ip=`ip route|awk '/docker0/ { print $9 }'`
-          if [ -z $docker_host_ip ]; then
-            docker_host_ip=172.17.0.1
-            echo "::warning ::Could not resolve Docker host IP dynamically, using $docker_host_ip"
+
+        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color"
+        if [[ ${{ inputs.target }} =~ "host.docker.internal" ]]; then
+          docker_client_version=$(docker version -f '{{.Client.Version}}')
+          docker_server_version=$(docker version -f '{{range .Server.Components}}{{if eq .Name "Engine"}}{{.Version}}{{end}}{{end}}')
+          IFS=. read major_c minor_c patch_c <<<"${docker_client_version%%*-}"
+          IFS=. read major_s minor_s patch_s <<<"${docker_server_version%%*-}"
+          if [[ $major_c -lt $major_s ]] || [[ $minor_c -lt $minor_s ]] || [[ $patch_c -lt $patch_s ]]; then
+              read major minor patch <<< "$major_c $minor_c $patch_c"
+          else
+              read major minor patch <<< "$major_s $minor_s $patch_s"
           fi
+          if [[ $major -gt 20 ]] || [[ $major -eq 20 && $minor -gt 0 ]] || [[ $major -eq 20 && $minor -eq 0 && $patch -ge 4 ]]; then
+            docker_host_ip=host-gateway
+          else
+            docker_host_ip=`ip route|awk '/docker0/ { print $9 }'`
+            if [ -z $docker_host_ip ]; then
+              docker_host_ip=172.17.0.1
+              echo "::warning ::Could not resolve Docker host IP dynamically, using $docker_host_ip"
+            fi
+          fi
+          levo_container_options+=" --add-host=host.docker.internal:$docker_host_ip"
         fi
-        alias levo="sudo docker run --rm --add-host=host.docker.internal:$docker_host_ip --mount type=bind,source=$HOME/.config/configstore,target=/home/levo/.config/configstore -v $PWD:/home/levo/work:rw -e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color levoai/levo"
-        levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}
-        set +e
-        CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}"'
+
+        alias levo="docker run --name levo-container $levo_container_options levoai/levo:stable"
+
+        CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }} --export-junit-xml=/tmp/junit.xml'
         if ${{ inputs.base64_env != '' }}; then
-          echo ${{ inputs.base64_env }} | base64 -d > env_from_secrets.yaml
-          cat env_from_secrets.yaml
-          CMD=$(echo $CMD --env-file env_from_secrets.yaml)
+          CMD=$(echo $CMD --env-file-base64 ${{ inputs.base64_env }})
         fi
         if ${{ inputs.report != 'true' }}; then
           CMD=$(echo $CMD --disable-reporting-to-saas)
         fi
-        CMD=$(echo $CMD ${{ inputs.cli_extra_args }} --export-junit-xml=/home/levo/work/reports/junit.xml)
+        if ${{ inputs.cli_extra_args != '' }}; then
+          CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
+        fi
         echo Running: $CMD
+
+        set +e
         eval $CMD
+
+        mkdir reports
+        docker cp levo-container:/tmp/junit.xml reports/junit.xml
         exit 0
       shell: bash
     - name: Publish Test Results
