@@ -1,0 +1,129 @@
+name: "Levo Action to run tests for an application"
+description: "Run Levo Security tests in your Github workflows"
+inputs:
+  app-lrn:
+    description: 'Application LRN'
+    required: true
+  target:
+    description: 'Target URL to the unit under test'
+    required: true
+  authorization-key:
+    description: 'Authorization key for CLI to run. Get it from https://app.levo.ai/settings/keys'
+    required: true
+  organization-id:
+    description: 'Levo Organization ID'
+    required: true
+  user-id:
+    description: Satellite's user id
+    required: true
+  categories:
+    description: Categories to run in comma separate string. eg - "BASELINE,SSRF,CORS". Leave it blank to run all categories
+    required: false
+  fail-on-failed-tests:
+    description: 'Fail action on failed test cases. Default: true'
+    required: true
+    default: 'true'
+  base64_env:
+    description: 'environment.yaml file content base64 encoded'
+    required: false
+    default: ''
+  saas-url:
+    description: 'Saas url to report results back'
+    required: true
+    default: "https://api.levo.ai"
+  report:
+    description: 'Report test run results to Levo'
+    required: false
+    default: 'true'
+  cli_extra_args:
+    description: 'CLI extra arguments. E.g: -H "Authorization: Bearer 123'
+    required: false
+    default: ""
+  debug:
+    description: 'Debug action'
+    required: false
+    default: 'false'
+outputs:
+  success:
+    description: 'Succeeded test cases'
+    value: ${{ steps.test-summary.outputs.passed }}
+  failed:
+    description: 'Failed test cases'
+    value: ${{ steps.test-summary.outputs.failed }}
+  skipped:
+    description: 'Skipped test cases'
+    value: ${{ steps.test-summary.outputs.skipped }}
+  total:
+    description: 'Total test cases'
+    value: ${{ steps.test-summary.outputs.total }}
+runs:
+  using: 'composite'
+  steps:
+    - id: run-tests-for-app
+      run: |
+        # Enable aliases since this is non-interactive shell
+        shopt -s expand_aliases
+        export LOCAL_UID=`id -u`
+        export LOCAL_GID=`id -g`
+
+        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e LOCAL_USER_ID=$LOCAL_UID -e LOCAL_GROUP_ID=$LOCAL_GID -e TERM=xterm-256color"
+        if [[ ${{ inputs.target }} =~ "host.docker.internal" ]]; then
+          docker_client_version=$(docker version -f '{{.Client.Version}}')
+          docker_server_version=$(docker version -f '{{range .Server.Components}}{{if eq .Name "Engine"}}{{.Version}}{{end}}{{end}}')
+          IFS=. read major_c minor_c patch_c <<<"${docker_client_version%%*-}"
+          IFS=. read major_s minor_s patch_s <<<"${docker_server_version%%*-}"
+          if [[ $major_c -lt $major_s ]] || [[ $minor_c -lt $minor_s ]] || [[ $patch_c -lt $patch_s ]]; then
+              read major minor patch <<< "$major_c $minor_c $patch_c"
+          else
+              read major minor patch <<< "$major_s $minor_s $patch_s"
+          fi
+          if [[ $major -gt 20 ]] || [[ $major -eq 20 && $minor -gt 0 ]] || [[ $major -eq 20 && $minor -eq 0 && $patch -ge 4 ]]; then
+            docker_host_ip=host-gateway
+          else
+            docker_host_ip=`ip route|awk '/docker0/ { print $9 }'`
+            if [ -z $docker_host_ip ]; then
+              docker_host_ip=172.17.0.1
+              echo "::warning ::Could not resolve Docker host IP dynamically, using $docker_host_ip"
+            fi
+          fi
+          levo_container_options+=" --add-host=host.docker.internal:$docker_host_ip"
+        fi
+
+        alias levo="docker run --name levo-container $levo_container_options levoai/levo:stable"
+
+        CMD='levo test --app-lrn "${{ inputs.app-lrn }}" --user-id "${{ inputs.user-id }}" --target-url "${{ inputs.target }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }} --export-junit-xml=/tmp/junit.xml'
+        if ${{ inputs.categories != '' }}; then
+          CMD=$(echo $CMD --categories ${{ inputs.categories }})
+        fi
+        if ${{ inputs.base64_env != '' }}; then
+          CMD=$(echo $CMD --env-file-base64 ${{ inputs.base64_env }})
+        fi
+        if ${{ inputs.report != 'true' }}; then
+          CMD=$(echo $CMD --disable-reporting-to-saas)
+        fi
+        if ${{ inputs.cli_extra_args != '' }}; then
+          CMD=$(echo $CMD ${{ inputs.cli_extra_args }})
+        fi
+        echo Running: $CMD
+
+        set +e
+        eval $CMD
+
+        mkdir reports
+        docker cp levo-container:/tmp/junit.xml reports/junit.xml
+        exit 0
+      shell: bash
+    - name: Publish Test Results
+      id: test-summary
+      if: always()
+      uses: test-summary/action@v2
+      with:
+        paths: '**/reports/*.xml'
+    - if: inputs.debug == 'true'
+      run: cat $PWD/reports/junit.xml
+      shell: bash
+    - if: inputs.fail-on-failed-tests == 'true' && steps.test-summary.outputs.failed > 0
+      run: |
+        echo "::error::${{ steps.test-summary.outputs.failed }} tests failed."
+        exit 1
+      shell: bash
