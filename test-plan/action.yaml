@@ -37,6 +37,10 @@ inputs:
     description: 'Debug action'
     required: false
     default: 'false'
+  levo-docker-image:
+    description: 'Levo CLI Docker image to use for the action (e.g. `levoai/levo:0.18.0`).'
+    required: false
+    default: 'levoai/levo:stable'
 outputs:
   success:
     description: 'Succeeded test cases'
@@ -83,7 +87,7 @@ runs:
           levo_container_options+=" --add-host=host.docker.internal:$docker_host_ip"
         fi
 
-        alias levo="docker run --name levo-container $levo_container_options levoai/levo:stable"
+        alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
         CMD='levo test --test-plan "${{ inputs.plan }}" --target-url "${{ inputs.target }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }} --export-junit-xml=/tmp/junit.xml'
         if ${{ inputs.base64_env != '' }}; then
