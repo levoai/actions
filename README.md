@@ -51,7 +51,7 @@ outputs:
 
 ## Test Plan Action
 
-This action executes atest plan and reports results to your [Levo](https://levo.ai) organization dashboard.
+This action executes a test plan and reports results to your [Levo](https://levo.ai) organization dashboard.
 
 This action will require you to have a Levo account and provide a target url and test plan LRN.
 ### Usage
@@ -89,10 +89,64 @@ This action will generate two output fields:
 ```yaml
 outputs:
   success:
-    description: '# of succesful test cases'
+    description: '# of successful test cases'
   failed:
     description: '# of failed test cases'
   skipped:
     description: '# of skipped test cases'
 ```
+
+## Test Application Action
+
+This action executes tests for an application and reports results to your [Levo](https://levo.ai) organization dashboard.
+
+This action will require you to have a Levo account and provide an application LRN, a target url, and user details with which you can access your APIs.
+### Usage
+
+<!-- start usage -->
+```yaml
+- uses: levoai/actions/test-application@v2
+  with:
+    # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
+    authorization-key: ''
+
+    # The ID of your organization in Levo dashboard. Please refer to https://app.levo.ai/settings/organization to get your organization id.
+    organization-id: ''
+
+    # URL for the instance of the application under test.
+    target: ''
+
+    # Application LRN. You can get this value from the Apps section in Saas.
+    app-lrn: ''
+
+    # user-id which can access the APIs of the application under test.
+    user-id: ''
+
+    # [OPTIONAL] Test categories in comma separate string. eg - "BASELINE,SSRF,CORS". Leave it blank to run all categories
+    categories: ''
+
+    # [OPTIONAL] Base64 encoded environment file content.
+    base64_env: ''
+
+    # [OPTIONAL] If you decide not to report the result of this execution back to Saas set this value to false. Default: true.
+    report: true
+
+    # [OPTIONAL] Use this option to pass CLI extra arguments like headers or verbosity. Please use \\\˝ to escape quotes.
+    cli_extra_args: "-H \\\"Authorization: Bearer 1234\\\" --verbosity INFO"
+```
+<!-- end usage -->
+
+### Output
+
+This action will generate two output fields:
+```yaml
+outputs:
+  success:
+    description: '# of successful test cases'
+  failed:
+    description: '# of failed test cases'
+  skipped:
+    description: '# of skipped test cases'
+```
+
 
