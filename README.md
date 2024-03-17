@@ -5,6 +5,9 @@
   - [Test Plan Action](#test-plan-action)
     - [Usage](#usage-1)
     - [Output](#output-1)
+  - [Scan Repository](#scan-repository)
+    - [Usage](#usage-2)
+    - [Output](#output-2)
 # Levo Actions
 
 ## Schema Conformance Action
@@ -149,4 +152,33 @@ outputs:
     description: '# of skipped test cases'
 ```
 
+## Scan Repository
+
+This action scans a repository and import results to your [Levo-app](https://app.levo.ai) organization dashboard.
+
+This action will require you to have a Levo account and provide a Authorization Key and Organization ID.
+
+### Usage
+
+<!-- start usage -->
+```yaml
+- uses: levoai/actions/scan@v2
+  with:
+    # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
+    authorization-key: ''
+
+    # The ID of your organization in Levo dashboard. Please refer to https://app.levo.ai/settings/organization to get your organization id.
+    organization-id: ''
+    
+    # The name of the application to be created in Levo.
+    app-name: ''
+
+    # [Optional] The name of the environment in which app must be created in Levo.
+    env-name: ''
+```
+<!-- end usage -->
+
+### Output
+
+This action will create an application in Levo[https://app.levo.ai] and import the results of the scan.
 
