@@ -162,7 +162,7 @@ This action will require you to have a Levo account and provide a Authorization 
 
 <!-- start usage -->
 ```yaml
-- uses: levoai/actions/scan@v2
+- uses: levoai/actions/scan@v2.1.2
   with:
     # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
     authorization-key: ''
