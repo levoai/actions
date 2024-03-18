@@ -1,0 +1,49 @@
+name: "Levo Action to run scan repository"
+description: "Run Levo Scan Repository in your Github workflows"
+inputs:
+  authorization-key:
+    description: 'Authorization key for CLI to run. Get it from https://app.levo.ai/settings/keys'
+    required: true
+  organization-id:
+    description: 'Levo Organization ID'
+    required: true
+  app-name:
+    description: 'Application name'
+    required: true
+  env-name:
+    description: 'Environment name'
+    required: false
+    default: 'staging'
+  saas-url:
+    description: 'Saas url to report results back'
+    required: true
+    default: "https://api.levo.ai"
+  levo-docker-image:
+    description: 'Levo CLI Docker image to use for the action (e.g. `levoai/levo:1.2.3`).'
+    required: false
+    default: 'levoai/levo:stable'
+runs:
+  using: 'composite'
+  steps:
+    - id: run-scan-repo
+      run: |
+        # Enable aliases since this is non-interactive shell
+        shopt -s expand_aliases
+        export LOCAL_UID=`id -u`
+        export LOCAL_GID=`id -g`
+
+        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color"
+        
+        alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
+
+        CMD='levo scan --dir . --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
+        if ${{ inputs.env-name != '' }}; then
+          CMD=$(echo $CMD --env-name ${{ inputs.env-name }})
+        fi
+        echo Running: $CMD
+
+        set +e
+        eval $CMD
+
+        exit 0
+      shell: bash
