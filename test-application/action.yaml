@@ -13,9 +13,6 @@ inputs:
   organization-id:
     description: 'Levo Organization ID'
     required: true
-  user-id:
-    description: Satellite's user id
-    required: true
   categories:
     description: Categories to run in comma separate string. eg - "BASELINE,SSRF,CORS". Leave it blank to run all categories
     required: false
@@ -95,7 +92,7 @@ runs:
 
         alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
-        CMD='levo test --app-lrn "${{ inputs.app-lrn }}" --user-id "${{ inputs.user-id }}" --target-url "${{ inputs.target }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }} --export-junit-xml=/tmp/junit.xml'
+        CMD='levo test --app-lrn "${{ inputs.app-lrn }}" --target-url "${{ inputs.target }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }} --export-junit-xml=/tmp/junit.xml'
         if ${{ inputs.categories != '' }}; then
           CMD=$(echo $CMD --categories ${{ inputs.categories }})
         fi
