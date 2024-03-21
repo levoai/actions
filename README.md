@@ -122,9 +122,6 @@ This action will require you to have a Levo account and provide an application L
     # Application LRN. You can get this value from the Apps section in Saas.
     app-lrn: ''
 
-    # user-id which can access the APIs of the application under test.
-    user-id: ''
-
     # [OPTIONAL] Test categories in comma separate string. eg - "BASELINE,SSRF,CORS". Leave it blank to run all categories
     categories: ''
 
