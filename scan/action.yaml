@@ -36,14 +36,18 @@ runs:
         
         alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
-        CMD='levo scan code --dir . --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
+        CMD_LOGIN='levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
+        
+        set +e
+        echo Running: $CMD_LOGIN
+        eval $CMD_LOGIN
+        
+        CMD_SCAN='levo scan code --dir . --app-name "${{ inputs.app-name }}"'
         if ${{ inputs.env-name != '' }}; then
           CMD=$(echo $CMD --env-name ${{ inputs.env-name }})
         fi
-        echo Running: $CMD
-
-        set +e
-        eval $CMD
+        echo Running: $CMD_SCAN
+        eval $CMD_SCAN
 
         exit 0
       shell: bash
