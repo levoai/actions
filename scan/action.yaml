@@ -47,10 +47,10 @@ runs:
         echo "$OUTPUT"
         
         if [[ "$OUTPUT" == *"INFO: App has been created"* ]]; then
-          echo "Scan succeeded, proceeding with next steps."
+          echo "Scan succeeded."
           echo "scan-success=true" >> $GITHUB_ENV
         else
-          echo "Scan failed, stopping the workflow."
+          echo "Scan failed."
           echo "scan-success=false" >> $GITHUB_ENV
           exit 1
         fi
