@@ -35,9 +35,9 @@ runs:
         eval 'pwd'
         eval 'ls -ltrah'
         
-        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color"
+        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color -v $PWD:/home/levo/work:rw"
         
-        alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
+        alias levo="docker run --rm --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
         CMD='levo scan code --dir . --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
         if ${{ inputs.env-name != '' }}; then
