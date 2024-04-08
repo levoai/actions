@@ -21,7 +21,7 @@ inputs:
   levo-docker-image:
     description: 'Levo CLI Docker image to use for the action (e.g. `levoai/levo:1.2.3`).'
     required: false
-    default: 'levoai/levo:1.3.0'
+    default: 'levoai/levo:stable'
 runs:
   using: 'composite'
   steps:
@@ -31,9 +31,6 @@ runs:
         shopt -s expand_aliases
         export LOCAL_UID=`id -u`
         export LOCAL_GID=`id -g`
-        
-        eval 'pwd'
-        eval 'ls -ltrah'
         
         levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color -v $PWD:/home/levo/work:rw"
         
@@ -46,7 +43,17 @@ runs:
         echo Running: $CMD
 
         set +e
-        eval $CMD
+        OUTPUT=$(eval $CMD)
+        echo "$OUTPUT"
+        
+        if [[ "$OUTPUT" == *"INFO: App has been created"* ]]; then
+          echo "Scan succeeded, proceeding with next steps."
+          echo "scan-success=true" >> $GITHUB_ENV
+        else
+          echo "Scan failed, stopping the workflow."
+          echo "scan-success=false" >> $GITHUB_ENV
+          exit 1
+        fi
 
         exit 0
       shell: bash
