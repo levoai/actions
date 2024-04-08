@@ -21,7 +21,7 @@ inputs:
   levo-docker-image:
     description: 'Levo CLI Docker image to use for the action (e.g. `levoai/levo:1.2.3`).'
     required: false
-    default: 'levoai/levo:stable'
+    default: 'levoai/levo:1.3.0'
 runs:
   using: 'composite'
   steps:
@@ -36,18 +36,14 @@ runs:
         
         alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
-        CMD_LOGIN='levo login -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
-        
-        set +e
-        echo Running: $CMD_LOGIN
-        eval $CMD_LOGIN
-        
-        CMD_SCAN='levo scan code --dir . --app-name "${{ inputs.app-name }}"'
+        CMD='levo scan code --dir . --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
         if ${{ inputs.env-name != '' }}; then
           CMD=$(echo $CMD --env-name ${{ inputs.env-name }})
         fi
-        echo Running: $CMD_SCAN
-        eval $CMD_SCAN
+        echo Running: $CMD
+
+        set +e
+        eval $CMD
 
         exit 0
       shell: bash
