@@ -31,19 +31,29 @@ runs:
         shopt -s expand_aliases
         export LOCAL_UID=`id -u`
         export LOCAL_GID=`id -g`
-
-        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color"
         
-        alias levo="docker run --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
+        levo_container_options="-e LEVO_BASE_URL=${{ inputs.saas-url }} -e TERM=xterm-256color -v $PWD:/home/levo/work:rw"
+        
+        alias levo="docker run --rm --name levo-container $levo_container_options ${{ inputs.levo-docker-image }}"
 
-        CMD='levo scan code --dir "$(pwd)" --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
+        CMD='levo scan code --dir . --app-name "${{ inputs.app-name }}" -k ${{ inputs.authorization-key }} -o ${{ inputs.organization-id }}'
         if ${{ inputs.env-name != '' }}; then
           CMD=$(echo $CMD --env-name ${{ inputs.env-name }})
         fi
         echo Running: $CMD
 
         set +e
-        eval $CMD
+        OUTPUT=$(eval $CMD)
+        echo "$OUTPUT"
+        
+        if [[ "$OUTPUT" == *"INFO: App has been created"* ]]; then
+          echo "Scan succeeded."
+          echo "scan-success=true" >> $GITHUB_ENV
+        else
+          echo "Scan failed."
+          echo "scan-success=false" >> $GITHUB_ENV
+          exit 1
+        fi
 
         exit 0
       shell: bash
