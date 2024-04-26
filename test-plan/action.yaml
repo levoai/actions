@@ -117,8 +117,8 @@ runs:
     - if: inputs.debug == 'true'
       run: cat $PWD/reports/junit.xml
       shell: bash
-    - if: inputs.fail-on-failed-tests == 'true' && steps.test-summary.outputs.failed > 0
+    - if: inputs.fail-on-failed-tests == 'true' && (steps.test-summary.outputs.failed > 0 || steps.test-summary.outputs.skipped > 0)
       run: |
-        echo "::error::${{ steps.test-summary.outputs.failed }} tests failed."
+        echo "::error::${{ steps.test-summary.outputs.failed }} tests failed and ${{ steps.test-summary.outputs.skipped }} tests skipped due to misconfiguration."
         exit 1
       shell: bash
