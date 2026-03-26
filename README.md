@@ -5,9 +5,15 @@
   - [Test Plan Action](#test-plan-action)
     - [Usage](#usage-1)
     - [Output](#output-1)
-  - [Scan Repository](#scan-repository)
+  - [Test Application Action](#test-application-action)
     - [Usage](#usage-2)
     - [Output](#output-2)
+  - [Scan Repository](#scan-repository)
+    - [Usage](#usage-3)
+    - [Output](#output-3)
+  - [DAST Scanner](#dast-scanner)
+    - [Usage](#usage-4)
+    - [Output](#output-4)
 # Levo Actions
 
 ## Schema Conformance Action
@@ -178,4 +184,78 @@ This action will require you to have a Levo account and provide a Authorization 
 ### Output
 
 This action will create an application in Levo[https://app.levo.ai] and import the results of the scan.
+
+## DAST Scanner
+
+This action runs dynamic application security testing (DAST) on your web app or API and reports findings to your [Levo](https://levo.ai) organization dashboard.
+
+This action will require Docker to be available on the runner. Providing a Levo account (`authorization-key` + `organization-id`) is optional but enables sending findings to the Levo platform.
+
+### Usage
+
+<!-- start usage -->
+```yaml
+- uses: levoai/actions/dast-scan@v1
+  with:
+    # URL of the application to scan.
+    target-url: 'https://your-app.example.com'
+
+    # [OPTIONAL] Levo.ai API key. Get it from https://app.levo.ai/settings/keys
+    authorization-key: ''
+
+    # [OPTIONAL] Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization
+    organization-id: ''
+
+    # [OPTIONAL] Application name for Levo integration.
+    app-name: ''
+
+    # [OPTIONAL] Environment name for Levo integration.
+    env-name: ''
+
+    # [OPTIONAL] Scan depth: smart or thorough. Default: smart
+    scan-depth: 'smart'
+
+    # [OPTIONAL] Fail workflow on findings with this severity or higher: critical, high, medium, or none. Default: critical
+    fail-on-severity: 'critical'
+
+    # [OPTIONAL] Output format: json, sarif, table, or quiet. Default: json
+    output-format: 'json'
+
+    # [OPTIONAL] Send findings to Levo platform. Default: true
+    send-issues: 'true'
+
+    # [OPTIONAL] Scan timeout in seconds. Default: 1800
+    timeout: '1800'
+
+    # [OPTIONAL] OpenAI API key for AI-powered analysis.
+    openai-api-key: ''
+
+    # [OPTIONAL] Anthropic API key for AI-powered analysis.
+    anthropic-api-key: ''
+
+    # [OPTIONAL] Use this option to pass extra CLI arguments.
+    extra-args: ''
+
+    # [OPTIONAL] Shadownet Docker image to use (e.g. `levoai/levoai-shadownet:1.2.3`). Default: levoai/levoai-shadownet:latest
+    levo-docker-image: 'levoai/levoai-shadownet:latest'
+```
+<!-- end usage -->
+
+### Output
+
+```yaml
+outputs:
+  scan-report:
+    description: 'Path to the scan report file (JSON or SARIF)'
+  scan-id:
+    description: 'Unique scan ID'
+  findings-count:
+    description: 'Total number of findings'
+  critical-findings:
+    description: 'Number of critical findings'
+  high-findings:
+    description: 'Number of high severity findings'
+  exit-code:
+    description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
+```
 

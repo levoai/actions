@@ -1,0 +1,59 @@
+name: Test DAST Scan Action
+on:
+  pull_request:
+    paths:
+      - 'dast-scan/**'
+      - '.github/workflows/test-dast-scan-action.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'dast-scan/**'
+      - '.github/workflows/test-dast-scan-action.yml'
+  workflow_dispatch:
+    inputs:
+      target-url:
+        description: 'URL to scan for testing'
+        required: false
+        default: 'https://juice-shop-spec-building.levoai.app/'
+
+jobs:
+  run-dast-scan:
+    environment: staging
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Print docker version
+        run: docker version
+      - name: Run DAST scan action
+        id: test-scan
+        uses: ./dast-scan
+        with:
+          target-url: ${{ github.event.inputs.target-url || 'https://levoai.github.io/demo-store/' }}
+          authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
+          organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+          saas-url: 'https://api.dev.levo.ai'
+          fail-on-severity: 'none'
+          send-issues: 'false'
+          scan-depth: 'smart'
+          timeout: '600'
+      - name: Verify action outputs
+        if: always()
+        run: |
+          echo "Testing action outputs..."
+          echo "Scan ID: ${{ steps.test-scan.outputs.scan-id }}"
+          echo "Findings: ${{ steps.test-scan.outputs.findings-count }}"
+          echo "Critical: ${{ steps.test-scan.outputs.critical-findings }}"
+          echo "High: ${{ steps.test-scan.outputs.high-findings }}"
+          echo "Report: ${{ steps.test-scan.outputs.scan-report }}"
+          echo "Exit code: ${{ steps.test-scan.outputs.exit-code }}"
+      - name: Upload scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dast-scan-test-report
+          path: reports/
+          retention-days: 7
+          if-no-files-found: warn
