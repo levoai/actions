@@ -66,29 +66,26 @@ inputs:
     required: false
     default: 'latest'
 
-  # --- Target app auth & scan mode (CLI scan) ---
-  scan-mode:
-    description: 'Scan mode: `webapp`, `api`, or `hybrid` (`--scan-mode`).'
+  # --- App authentication (CLI scan) ---
+  auth:
+    description: 'Authentication strategy (`--auth`, e.g. none, basic, bearer, form).'
     required: false
-  target-auth:
-    description: 'Target app auth strategy (`--auth`, e.g. none, basic, bearer, form).'
+  username:
+    description: 'Username for authenticated scans (`LEVOAI_USERNAME`).'
     required: false
-  target-username:
-    description: 'Username for scanning authenticated targets (`LEVOAI_USERNAME`).'
+  password:
+    description: 'Password for authenticated scans (`LEVOAI_PASSWORD`).'
     required: false
-  target-password:
-    description: 'Password for scanning authenticated targets (`LEVOAI_PASSWORD`).'
+  token:
+    description: 'Bearer token (`LEVOAI_TOKEN`).'
     required: false
-  target-token:
-    description: 'Bearer token for target app (`LEVOAI_TOKEN`).'
-    required: false
-  target-login-url:
+  login-url:
     description: 'Login page URL for form auth (`--login-url`).'
     required: false
-  target-cookies:
+  cookies:
     description: 'One `key=value` cookie per line (`--cookie`, repeatable).'
     required: false
-  target-headers:
+  headers:
     description: 'One `Name: Value` header per line (`--header`, repeatable).'
 
   # --- Scan phases ---
@@ -183,10 +180,10 @@ inputs:
     required: false
     default: 'true'
   capture-domains:
-    description: 'Comma-separated capture domain whitelist (`--capture-domains`).'
+    description: 'Comma-separated capture domain pattern whitelist (`--capture-domains`).'
     required: false
   exclude-domains:
-    description: 'Comma-separated extra excluded domains (`--exclude-domains`).'
+    description: 'Comma-separated extra excluded domains pattern (`--exclude-domains`).'
     required: false
 
 outputs:
@@ -234,9 +231,9 @@ runs:
         LEVOAI_BASE_URL: ${{ inputs.saas-url }}
         LEVOAI_SATELLITE_URL: ${{ inputs.satellite-url }}
         LEVOAI_ENV_ID: ${{ inputs.env-id }}
-        LEVOAI_USERNAME: ${{ inputs.target-username }}
-        LEVOAI_PASSWORD: ${{ inputs.target-password }}
-        LEVOAI_TOKEN: ${{ inputs.target-token }}
+        LEVOAI_USERNAME: ${{ inputs.username }}
+        LEVOAI_PASSWORD: ${{ inputs.password }}
+        LEVOAI_TOKEN: ${{ inputs.token }}
         HTTP_METHODS: ${{ inputs.http-methods }}
         INPUT_TARGET_URL: ${{ inputs.target-url }}
         INPUT_SCAN_DEPTH: ${{ inputs.scan-depth }}
@@ -247,11 +244,10 @@ runs:
         INPUT_SEND_ISSUES: ${{ inputs.send-issues }}
         INPUT_EXTRA_ARGS: ${{ inputs.extra-args }}
         INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
-        INPUT_SCAN_MODE: ${{ inputs.scan-mode }}
-        INPUT_TARGET_AUTH: ${{ inputs.target-auth }}
-        INPUT_TARGET_LOGIN_URL: ${{ inputs.target-login-url }}
-        INPUT_TARGET_COOKIES: ${{ inputs.target-cookies }}
-        INPUT_TARGET_HEADERS: ${{ inputs.target-headers }}
+        INPUT_AUTH: ${{ inputs.auth }}
+        INPUT_LOGIN_URL: ${{ inputs.login-url }}
+        INPUT_COOKIES: ${{ inputs.cookies }}
+        INPUT_HEADERS: ${{ inputs.headers }}
         INPUT_ENABLE_PASSIVE: ${{ inputs.enable-passive }}
         INPUT_ENABLE_ACTIVE: ${{ inputs.enable-active }}
         INPUT_DISABLE_CATEGORIES: ${{ inputs.disable-categories }}
@@ -346,24 +342,23 @@ runs:
           --non-interactive
         )
 
-        # Optional scan mode & target auth
-        [ -n "$INPUT_SCAN_MODE" ] && DOCKER_ARGS+=(--scan-mode "$INPUT_SCAN_MODE")
-        [ -n "$INPUT_TARGET_AUTH" ] && DOCKER_ARGS+=(--auth "$INPUT_TARGET_AUTH")
-        [ -n "$INPUT_TARGET_LOGIN_URL" ] && DOCKER_ARGS+=(--login-url "$INPUT_TARGET_LOGIN_URL")
+        # Optional app auth
+        [ -n "$INPUT_AUTH" ] && DOCKER_ARGS+=(--auth "$INPUT_AUTH")
+        [ -n "$INPUT_LOGIN_URL" ] && DOCKER_ARGS+=(--login-url "$INPUT_LOGIN_URL")
 
         while IFS= read -r line || [ -n "$line" ]; do
           line="${line#"${line%%[![:space:]]*}"}"
           line="${line%"${line##*[![:space:]]}"}"
           [ -z "$line" ] && continue
           DOCKER_ARGS+=(--cookie "$line")
-        done <<< "${INPUT_TARGET_COOKIES:-}"
+        done <<< "${INPUT_COOKIES:-}"
 
         while IFS= read -r line || [ -n "$line" ]; do
           line="${line#"${line%%[![:space:]]*}"}"
           line="${line%"${line##*[![:space:]]}"}"
           [ -z "$line" ] && continue
           DOCKER_ARGS+=(--header "$line")
-        done <<< "${INPUT_TARGET_HEADERS:-}"
+        done <<< "${INPUT_HEADERS:-}"
 
         # Passive / active
         if [ "${INPUT_ENABLE_PASSIVE:-true}" != "true" ]; then

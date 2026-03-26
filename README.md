@@ -238,7 +238,7 @@ This action will require Docker to be available on the runner. Providing a Levo 
 ```
 <!-- end usage -->
 
-The action wraps common `shadownet scan` options (target auth, scan mode, crawl limits, AI, CVE, chatbot, domain filters, etc.). Timeout is passed as `--timeout` via the `timeout` input. See [`dast-scan/action.yaml`](dast-scan/action.yaml) for all inputs. Use `extra-args` for any other CLI flags.
+The action wraps common `shadownet scan` options (auth, cookies, headers, crawl limits, AI, CVE, chatbot, domain filters, etc.). Timeout is passed as `--timeout` via the `timeout` input. See [`dast-scan/action.yaml`](dast-scan/action.yaml) for all inputs. Use `extra-args` for any other CLI flags.
 
 ### Output
 
