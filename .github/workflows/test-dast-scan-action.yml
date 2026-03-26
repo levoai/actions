@@ -31,7 +31,7 @@ jobs:
         id: test-scan
         uses: ./dast-scan
         with:
-          target-url: ${{ github.event.inputs.target-url || 'https://levoai.github.io/demo-store/' }}
+          target-url: ${{ github.event.inputs.target-url || 'https://juice-shop-spec-building.levoai.app/' }}
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           env-id: ${{ secrets.LEVOAI_ENV_ID }}

@@ -136,6 +136,11 @@ runs:
             -e LEVOAI_BASE_URL \
             "$LEVO_IMAGE" \
             login -k "$LEVOAI_AUTH_KEY" -o "$LEVOAI_ORG_ID"
+          LOGIN_EXIT=$?
+          if [ "$LOGIN_EXIT" -ne 0 ]; then
+            echo "::error::Levo login failed (exit $LOGIN_EXIT). Verify authorization-key, organization-id, and saas-url match your org."
+            exit "$LOGIN_EXIT"
+          fi
         fi
 
         # Determine report file extension
@@ -234,6 +239,11 @@ runs:
         else
           echo "Report file not found at $REPORT_FILE"
           ls -la "$REPORTS_DIR" 2>/dev/null || echo "Reports directory does not exist"
+          if [ "$SCAN_EXIT_CODE" -ne 0 ]; then
+            echo "::error::Scan exited with code $SCAN_EXIT_CODE before writing a report. Check logs above (credentials, env-id, target URL, network). If login succeeded, the failure is usually during the scan phase."
+          else
+            echo "::error::Scan reported success (exit 0) but no report file was written at $REPORT_FILE — unexpected; check container permissions and --output-file path."
+          fi
           echo "report-path=" >> "$GITHUB_OUTPUT"
           echo "findings-count=0" >> "$GITHUB_OUTPUT"
           echo "critical-findings=0" >> "$GITHUB_OUTPUT"
