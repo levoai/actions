@@ -23,17 +23,8 @@ inputs:
     description: 'Levo.ai satellite URL for capturing traffic'
     required: false
     default: 'https://satellite.levo.ai'
-  app-name:
-    description: 'Application name for Levo integration'
-    required: false
-  app-id:
-    description: 'Application ID for Levo integration'
-    required: false
-  env-name:
-    description: 'Environment name for Levo integration (resolved to env-id automatically via the platform API)'
-    required: false
   env-id:
-    description: 'Environment ID for Levo integration. Takes precedence over env-name if both are provided.'
+    description: 'Environment ID for Levo integration'
     required: false
   scan-depth:
     description: 'Scan depth: smart or thorough'
@@ -70,10 +61,10 @@ inputs:
   extra-args:
     description: 'Additional arguments to pass to shadownet CLI'
     required: false
-  levo-docker-image:
-    description: 'Shadownet Docker image to use for the action (e.g. `levoai/levoai-shadownet:1.2.3`).'
+  shadownet-version:
+    description: 'Image tag for `levoai/levoai-shadownet:<version>`.'
     required: false
-    default: 'levoai/levoai-shadownet:latest'
+    default: 'latest'
 outputs:
   scan-report:
     description: 'Path to the scan report file (JSON or SARIF)'
@@ -90,6 +81,18 @@ outputs:
   high-findings:
     description: 'Number of high severity findings'
     value: ${{ steps.run-dast-scan.outputs.high-findings }}
+  medium-findings:
+    description: 'Number of medium severity findings'
+    value: ${{ steps.run-dast-scan.outputs.medium-findings }}
+  low-findings:
+    description: 'Number of low severity findings'
+    value: ${{ steps.run-dast-scan.outputs.low-findings }}
+  info-findings:
+    description: 'Number of informational findings (info or informational in report)'
+    value: ${{ steps.run-dast-scan.outputs.info-findings }}
+  findings-by-severity:
+    description: 'JSON object of counts keyed by severity from the report (empty for SARIF / no report)'
+    value: ${{ steps.run-dast-scan.outputs.findings-by-severity }}
   exit-code:
     description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
     value: ${{ steps.run-dast-scan.outputs.exit-code }}
@@ -106,10 +109,7 @@ runs:
         LEVOAI_ORG_ID: ${{ inputs.organization-id }}
         LEVOAI_BASE_URL: ${{ inputs.saas-url }}
         LEVOAI_SATELLITE_URL: ${{ inputs.satellite-url }}
-        LEVOAI_APP_ID: ${{ inputs.app-id }}
-        LEVO_APP_NAME: ${{ inputs.app-name }}
         LEVOAI_ENV_ID: ${{ inputs.env-id }}
-        LEVO_ENV_NAME: ${{ inputs.env-name }}
         INPUT_TARGET_URL: ${{ inputs.target-url }}
         INPUT_SCAN_DEPTH: ${{ inputs.scan-depth }}
         INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
@@ -126,7 +126,7 @@ runs:
         LEVO_HOME="${{ runner.temp }}/levo-home"
         mkdir -p "$REPORTS_DIR" "$LEVO_HOME/.config/configstore" "$LEVO_HOME/.shadownet"
 
-        LEVO_IMAGE="${{ inputs.levo-docker-image }}"
+        LEVO_IMAGE="levoai/levoai-shadownet:${{ inputs.shadownet-version }}"
         echo "Pulling Docker image: $LEVO_IMAGE"
         docker pull "$LEVO_IMAGE"
 
@@ -169,10 +169,7 @@ runs:
           -e LEVOAI_ORG_ID
           -e LEVOAI_BASE_URL
           -e LEVOAI_SATELLITE_URL
-          -e LEVOAI_APP_ID
-          -e LEVO_APP_NAME
           -e LEVOAI_ENV_ID
-          -e LEVO_ENV_NAME
           -e PYTHONUNBUFFERED=1
           "$LEVO_IMAGE"
           scan "$INPUT_TARGET_URL"
@@ -186,10 +183,7 @@ runs:
         # Append optional parameters
         [ -n "$INPUT_MAX_DEPTH" ] && DOCKER_ARGS+=(--max-depth "$INPUT_MAX_DEPTH")
         [ -n "$INPUT_MAX_PAGES" ] && DOCKER_ARGS+=(--max-pages "$INPUT_MAX_PAGES")
-        [ -n "$LEVOAI_APP_ID" ]   && DOCKER_ARGS+=(--app-id "$LEVOAI_APP_ID")
-        [ -n "$LEVO_APP_NAME" ]   && DOCKER_ARGS+=(--app-name "$LEVO_APP_NAME")
         [ -n "$LEVOAI_ENV_ID" ]   && DOCKER_ARGS+=(--env-id "$LEVOAI_ENV_ID")
-        [ -n "$LEVO_ENV_NAME" ]   && DOCKER_ARGS+=(--env-name "$LEVO_ENV_NAME")
 
         if [ "$INPUT_SEND_ISSUES" = "true" ] && [ -n "$LEVOAI_AUTH_KEY" ] && [ -n "$LEVOAI_ORG_ID" ]; then
           DOCKER_ARGS+=(--send-issues)
@@ -203,9 +197,7 @@ runs:
 
         echo "Scan Configuration:"
         echo "  Target: $INPUT_TARGET_URL"
-        [ -n "$LEVO_APP_NAME" ]   && echo "  App Name: $LEVO_APP_NAME"
         [ -n "$LEVOAI_ENV_ID" ]   && echo "  Env ID: ***"
-        [ -n "$LEVO_ENV_NAME" ]   && echo "  Env Name: $LEVO_ENV_NAME"
         echo "  Satellite URL: ${LEVOAI_SATELLITE_URL:-not set}"
         echo "  Base URL: ${LEVOAI_BASE_URL:-not set}"
         [ -n "$LEVOAI_AUTH_KEY" ] && [ -n "$LEVOAI_ORG_ID" ] && echo "  Auth: Authenticated with Levo"
@@ -227,24 +219,64 @@ runs:
               FINDINGS_COUNT=$(jq '.findings.total // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
               CRITICAL_COUNT=$(jq '.findings.by_severity.critical // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
               HIGH_COUNT=$(jq '.findings.by_severity.high // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              MEDIUM_COUNT=$(jq '.findings.by_severity.medium // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              LOW_COUNT=$(jq '.findings.by_severity.low // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              INFO_COUNT=$(jq '(.findings.by_severity // {}) | .info // .informational // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
               SCAN_ID=$(jq -r '.scan_id // "unknown"' "$REPORT_FILE" 2>/dev/null || echo "unknown")
+              SEVERITY_JSON=$(jq -c '.findings.by_severity // {}' "$REPORT_FILE" 2>/dev/null || echo "{}")
             else
               FINDINGS_COUNT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('findings',{}).get('total',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
-              CRITICAL_COUNT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('findings',{}).get('by_severity',{}).get('critical',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
-              HIGH_COUNT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('findings',{}).get('by_severity',{}).get('high',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              bs_py="import json,sys;d=json.load(open(sys.argv[1]));b=d.get('findings',{}).get('by_severity') or {}"
+              CRITICAL_COUNT=$(python3 -c "$bs_py;print(b.get('critical',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              HIGH_COUNT=$(python3 -c "$bs_py;print(b.get('high',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              MEDIUM_COUNT=$(python3 -c "$bs_py;print(b.get('medium',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              LOW_COUNT=$(python3 -c "$bs_py;print(b.get('low',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              INFO_COUNT=$(python3 -c "$bs_py;print(b.get('info',b.get('informational',0)))" "$REPORT_FILE" 2>/dev/null || echo "0")
               SCAN_ID=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('scan_id','unknown'))" "$REPORT_FILE" 2>/dev/null || echo "unknown")
+              SEVERITY_JSON=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps(d.get('findings',{}).get('by_severity') or {}))" "$REPORT_FILE" 2>/dev/null || echo "{}")
             fi
 
             echo "findings-count=$FINDINGS_COUNT" >> "$GITHUB_OUTPUT"
             echo "critical-findings=$CRITICAL_COUNT" >> "$GITHUB_OUTPUT"
             echo "high-findings=$HIGH_COUNT" >> "$GITHUB_OUTPUT"
+            echo "medium-findings=$MEDIUM_COUNT" >> "$GITHUB_OUTPUT"
+            echo "low-findings=$LOW_COUNT" >> "$GITHUB_OUTPUT"
+            echo "info-findings=$INFO_COUNT" >> "$GITHUB_OUTPUT"
+            {
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "$SEVERITY_JSON"
+              echo "DAST_SEVERITY_JSON"
+            } >> "$GITHUB_OUTPUT"
             echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
 
-            echo "Results: $FINDINGS_COUNT total, $CRITICAL_COUNT critical, $HIGH_COUNT high"
+            echo ""
+            echo "┌─────────────────────────────────────────────────────────────"
+            echo "│ Findings summary"
+            echo "├─────────────────────────────────────────────────────────────"
+            printf "│ %-18s %s\n" "Scan ID" "$SCAN_ID"
+            printf "│ %-18s %s\n" "Total" "$FINDINGS_COUNT"
+            printf "│ %-18s %s\n" "Critical" "$CRITICAL_COUNT"
+            printf "│ %-18s %s\n" "High" "$HIGH_COUNT"
+            printf "│ %-18s %s\n" "Medium" "$MEDIUM_COUNT"
+            printf "│ %-18s %s\n" "Low" "$LOW_COUNT"
+            printf "│ %-18s %s\n" "Informational" "$INFO_COUNT"
+            echo "├─────────────────────────────────────────────────────────────"
+            echo "│ By severity (JSON):"
+            echo "$SEVERITY_JSON" | sed 's/^/│ /'
+            echo "└─────────────────────────────────────────────────────────────"
+            echo ""
           elif [[ "$REPORT_FILE" == *.sarif ]]; then
             echo "findings-count=0" >> "$GITHUB_OUTPUT"
             echo "critical-findings=0" >> "$GITHUB_OUTPUT"
             echo "high-findings=0" >> "$GITHUB_OUTPUT"
+            echo "medium-findings=0" >> "$GITHUB_OUTPUT"
+            echo "low-findings=0" >> "$GITHUB_OUTPUT"
+            echo "info-findings=0" >> "$GITHUB_OUTPUT"
+            {
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "{}"
+              echo "DAST_SEVERITY_JSON"
+            } >> "$GITHUB_OUTPUT"
             echo "scan-id=unknown" >> "$GITHUB_OUTPUT"
             echo "SARIF report written; severity counts are not extracted (use output-format json for findings outputs or consume the SARIF file)."
           fi
@@ -260,6 +292,14 @@ runs:
           echo "findings-count=0" >> "$GITHUB_OUTPUT"
           echo "critical-findings=0" >> "$GITHUB_OUTPUT"
           echo "high-findings=0" >> "$GITHUB_OUTPUT"
+          echo "medium-findings=0" >> "$GITHUB_OUTPUT"
+          echo "low-findings=0" >> "$GITHUB_OUTPUT"
+          echo "info-findings=0" >> "$GITHUB_OUTPUT"
+          {
+            echo "findings-by-severity<<DAST_SEVERITY_JSON"
+            echo "{}"
+            echo "DAST_SEVERITY_JSON"
+          } >> "$GITHUB_OUTPUT"
           echo "scan-id=unknown" >> "$GITHUB_OUTPUT"
         fi
 

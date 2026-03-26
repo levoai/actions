@@ -46,9 +46,13 @@ jobs:
         run: |
           echo "Testing action outputs..."
           echo "Scan ID: ${{ steps.test-scan.outputs.scan-id }}"
-          echo "Findings: ${{ steps.test-scan.outputs.findings-count }}"
+          echo "Findings (total): ${{ steps.test-scan.outputs.findings-count }}"
           echo "Critical: ${{ steps.test-scan.outputs.critical-findings }}"
           echo "High: ${{ steps.test-scan.outputs.high-findings }}"
+          echo "Medium: ${{ steps.test-scan.outputs.medium-findings }}"
+          echo "Low: ${{ steps.test-scan.outputs.low-findings }}"
+          echo "Info: ${{ steps.test-scan.outputs.info-findings }}"
+          echo "By severity (JSON): ${{ steps.test-scan.outputs.findings-by-severity }}"
           echo "Report: ${{ steps.test-scan.outputs.scan-report }}"
           echo "Exit code: ${{ steps.test-scan.outputs.exit-code }}"
       - name: Upload scan report

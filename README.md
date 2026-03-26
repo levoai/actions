@@ -206,11 +206,8 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # [OPTIONAL] Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization
     organization-id: ''
 
-    # [OPTIONAL] Application name for Levo integration.
-    app-name: ''
-
-    # [OPTIONAL] Environment name for Levo integration.
-    env-name: ''
+    # [OPTIONAL] Environment ID for Levo integration
+    env-id: ''
 
     # [OPTIONAL] Scan depth: smart or thorough. Default: smart
     scan-depth: 'smart'
@@ -236,8 +233,8 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # [OPTIONAL] Use this option to pass extra CLI arguments.
     extra-args: ''
 
-    # [OPTIONAL] Shadownet Docker image to use (e.g. `levoai/levoai-shadownet:1.2.3`). Default: levoai/levoai-shadownet:latest
-    levo-docker-image: 'levoai/levoai-shadownet:latest'
+    # [OPTIONAL] Tag for levoai/levoai-shadownet (image name is fixed). Default: latest
+    shadownet-version: 'latest'
 ```
 <!-- end usage -->
 
@@ -255,6 +252,14 @@ outputs:
     description: 'Number of critical findings (from JSON report only; 0 when output-format is sarif)'
   high-findings:
     description: 'Number of high severity findings (from JSON report only; 0 when output-format is sarif)'
+  medium-findings:
+    description: 'Number of medium severity findings (JSON only)'
+  low-findings:
+    description: 'Number of low severity findings (JSON only)'
+  info-findings:
+    description: 'Informational count (JSON only; uses info or informational in report)'
+  findings-by-severity:
+    description: 'Full JSON object of per-severity counts from the report'
   exit-code:
     description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
 ```
