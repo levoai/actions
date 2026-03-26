@@ -43,18 +43,47 @@ jobs:
           timeout: '600'
       - name: Verify action outputs
         if: always()
+        env:
+          DAST_SCAN_ID: ${{ steps.test-scan.outputs.scan-id }}
+          DAST_FINDINGS_TOTAL: ${{ steps.test-scan.outputs.findings-count }}
+          DAST_CRITICAL: ${{ steps.test-scan.outputs.critical-findings }}
+          DAST_HIGH: ${{ steps.test-scan.outputs.high-findings }}
+          DAST_MEDIUM: ${{ steps.test-scan.outputs.medium-findings }}
+          DAST_LOW: ${{ steps.test-scan.outputs.low-findings }}
+          DAST_INFO: ${{ steps.test-scan.outputs.info-findings }}
+          DAST_BY_SEVERITY: ${{ steps.test-scan.outputs.findings-by-severity }}
+          DAST_REPORT: ${{ steps.test-scan.outputs.scan-report }}
+          DAST_EXIT: ${{ steps.test-scan.outputs.exit-code }}
         run: |
-          echo "Testing action outputs..."
-          echo "Scan ID: ${{ steps.test-scan.outputs.scan-id }}"
-          echo "Findings (total): ${{ steps.test-scan.outputs.findings-count }}"
-          echo "Critical: ${{ steps.test-scan.outputs.critical-findings }}"
-          echo "High: ${{ steps.test-scan.outputs.high-findings }}"
-          echo "Medium: ${{ steps.test-scan.outputs.medium-findings }}"
-          echo "Low: ${{ steps.test-scan.outputs.low-findings }}"
-          echo "Info: ${{ steps.test-scan.outputs.info-findings }}"
-          echo "By severity (JSON): ${{ steps.test-scan.outputs.findings-by-severity }}"
-          echo "Report: ${{ steps.test-scan.outputs.scan-report }}"
-          echo "Exit code: ${{ steps.test-scan.outputs.exit-code }}"
+          echo ""
+          echo "=================================================================================="
+          echo "  DAST scan — action outputs (verification)"
+          echo "=================================================================================="
+          echo ""
+          printf "  %-22s  %s\n" "Metric" "Value"
+          printf "  %-22s  %s\n" "----------------------" "--------------------------------------------------"
+          printf "  %-22s  %s\n" "Scan ID" "${DAST_SCAN_ID:--}"
+          printf "  %-22s  %s\n" "Total findings" "${DAST_FINDINGS_TOTAL:--}"
+          printf "  %-22s  %s\n" "Critical" "${DAST_CRITICAL:--}"
+          printf "  %-22s  %s\n" "High" "${DAST_HIGH:--}"
+          printf "  %-22s  %s\n" "Medium" "${DAST_MEDIUM:--}"
+          printf "  %-22s  %s\n" "Low" "${DAST_LOW:--}"
+          printf "  %-22s  %s\n" "Informational" "${DAST_INFO:--}"
+          printf "  %-22s  %s\n" "Exit code" "${DAST_EXIT:--}"
+          echo ""
+          echo "  Report path"
+          echo "  ----------------------"
+          echo "  ${DAST_REPORT:--}"
+          echo ""
+          echo "  By severity (JSON)"
+          echo "  ----------------------"
+          if command -v jq >/dev/null 2>&1 && [ -n "${DAST_BY_SEVERITY:-}" ]; then
+            echo "$DAST_BY_SEVERITY" | jq . 2>/dev/null | sed 's/^/  /' || echo "  ${DAST_BY_SEVERITY:--}"
+          else
+            echo "  ${DAST_BY_SEVERITY:--}"
+          fi
+          echo ""
+          echo "=================================================================================="
       - name: Upload scan report
         uses: actions/upload-artifact@v4
         if: always()

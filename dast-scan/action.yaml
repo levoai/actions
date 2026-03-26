@@ -43,7 +43,7 @@ inputs:
     required: false
     default: 'true'
   timeout:
-    description: 'Scan timeout in seconds'
+    description: 'Scan timeout in seconds (passed as `--scan-timeout`).'
     required: false
     default: '1800'
   max-depth:
@@ -65,6 +65,130 @@ inputs:
     description: 'Image tag for `levoai/levoai-shadownet:<version>`.'
     required: false
     default: 'latest'
+
+  # --- Target app auth & scan mode (CLI scan) ---
+  scan-mode:
+    description: 'Scan mode: `webapp`, `api`, or `hybrid` (`--scan-mode`).'
+    required: false
+  target-auth:
+    description: 'Target app auth strategy (`--auth`, e.g. none, basic, bearer, form).'
+    required: false
+  target-username:
+    description: 'Username for scanning authenticated targets (`LEVOAI_USERNAME`).'
+    required: false
+  target-password:
+    description: 'Password for scanning authenticated targets (`LEVOAI_PASSWORD`).'
+    required: false
+  target-token:
+    description: 'Bearer token for target app (`LEVOAI_TOKEN`).'
+    required: false
+  target-login-url:
+    description: 'Login page URL for form auth (`--login-url`).'
+    required: false
+  target-cookies:
+    description: 'One `key=value` cookie per line (`--cookie`, repeatable).'
+    required: false
+  target-headers:
+    description: 'One `Name: Value` header per line (`--header`, repeatable).'
+
+  # --- Scan phases ---
+  enable-passive:
+    description: 'Enable passive scanning (`--passive` / `--no-passive`).'
+    required: false
+    default: 'true'
+  enable-active:
+    description: 'Enable active scanning (`--active` / `--no-active`).'
+    required: false
+    default: 'true'
+  disable-categories:
+    description: 'Comma-separated categories to disable (`--disable-categories`).'
+    required: false
+  inject-locations:
+    description: 'Comma-separated injection locations (`--inject-locations`).'
+    required: false
+  http-methods:
+    description: 'Comma-separated HTTP methods for active testing (`HTTP_METHODS` env).'
+    required: false
+
+  # --- CVE toggles ---
+  enable-js-cve:
+    description: 'Enable JS library CVE scanning (`--js-cve` / `--no-js-cve`).'
+    required: false
+    default: 'true'
+  enable-dom-cve:
+    description: 'Enable DOM CVE scanning (`--dom-cve` / `--no-dom-cve`).'
+    required: false
+    default: 'true'
+
+  # --- AI ---
+  enable-ai:
+    description: 'Enable AI analysis (`--ai` / `--no-ai`).'
+    required: false
+    default: 'true'
+  llm-provider:
+    description: 'LLM provider (`--llm-provider`, e.g. openai, anthropic).'
+    required: false
+    default: 'openai'
+  ai-prompt:
+    description: 'Custom AI crawler prompt (`--prompt`).'
+    required: false
+  ai-form-filling:
+    description: 'AI form filling (`--ai-form-filling` / `--no-ai-form-filling`).'
+    required: false
+    default: 'true'
+  ai-form-policy:
+    description: 'AI form policy: conservative, moderate, aggressive (`--ai-form-policy`).'
+    required: false
+    default: 'aggressive'
+
+  # --- Chatbot ---
+  no-inline-chatbot:
+    description: 'Disable inline chatbot detection (`--no-inline-chatbot`).'
+    required: false
+    default: 'false'
+  inline-chatbot-test:
+    description: 'Run security tests on detected chatbots (`--inline-chatbot-test`).'
+    required: false
+    default: 'false'
+  chatbot-test-timeout:
+    description: 'Seconds per chatbot test (`--chatbot-test-timeout`).'
+    required: false
+  chatbot-max-count:
+    description: 'Max chatbots to test (`--chatbot-max-count`).'
+    required: false
+
+  # --- Crawl ---
+  max-clicks-per-page:
+    description: 'Max clicks per page (`--max-clicks-per-page`).'
+    required: false
+
+  severity:
+    description: 'Minimum severity to report (`--severity`).'
+    required: false
+
+  target-page:
+    description: 'Single-page scan (`--target-page`).'
+    required: false
+  crawl-only:
+    description: 'Crawl only, no security tests (`--crawl-only`).'
+    required: false
+    default: 'false'
+
+  scan-name:
+    description: 'Display name for the scan (`--name`).'
+    required: false
+
+  ignore-third-party:
+    description: 'Ignore third-party APIs (`--ignore-third-party` / `--allow-third-party`).'
+    required: false
+    default: 'true'
+  capture-domains:
+    description: 'Comma-separated capture domain whitelist (`--capture-domains`).'
+    required: false
+  exclude-domains:
+    description: 'Comma-separated extra excluded domains (`--exclude-domains`).'
+    required: false
+
 outputs:
   scan-report:
     description: 'Path to the scan report file (JSON or SARIF)'
@@ -110,6 +234,10 @@ runs:
         LEVOAI_BASE_URL: ${{ inputs.saas-url }}
         LEVOAI_SATELLITE_URL: ${{ inputs.satellite-url }}
         LEVOAI_ENV_ID: ${{ inputs.env-id }}
+        LEVOAI_USERNAME: ${{ inputs.target-username }}
+        LEVOAI_PASSWORD: ${{ inputs.target-password }}
+        LEVOAI_TOKEN: ${{ inputs.target-token }}
+        HTTP_METHODS: ${{ inputs.http-methods }}
         INPUT_TARGET_URL: ${{ inputs.target-url }}
         INPUT_SCAN_DEPTH: ${{ inputs.scan-depth }}
         INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
@@ -119,6 +247,34 @@ runs:
         INPUT_SEND_ISSUES: ${{ inputs.send-issues }}
         INPUT_EXTRA_ARGS: ${{ inputs.extra-args }}
         INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
+        INPUT_SCAN_MODE: ${{ inputs.scan-mode }}
+        INPUT_TARGET_AUTH: ${{ inputs.target-auth }}
+        INPUT_TARGET_LOGIN_URL: ${{ inputs.target-login-url }}
+        INPUT_TARGET_COOKIES: ${{ inputs.target-cookies }}
+        INPUT_TARGET_HEADERS: ${{ inputs.target-headers }}
+        INPUT_ENABLE_PASSIVE: ${{ inputs.enable-passive }}
+        INPUT_ENABLE_ACTIVE: ${{ inputs.enable-active }}
+        INPUT_DISABLE_CATEGORIES: ${{ inputs.disable-categories }}
+        INPUT_INJECT_LOCATIONS: ${{ inputs.inject-locations }}
+        INPUT_ENABLE_JS_CVE: ${{ inputs.enable-js-cve }}
+        INPUT_ENABLE_DOM_CVE: ${{ inputs.enable-dom-cve }}
+        INPUT_ENABLE_AI: ${{ inputs.enable-ai }}
+        INPUT_LLM_PROVIDER: ${{ inputs.llm-provider }}
+        INPUT_AI_PROMPT: ${{ inputs.ai-prompt }}
+        INPUT_AI_FORM_FILLING: ${{ inputs.ai-form-filling }}
+        INPUT_AI_FORM_POLICY: ${{ inputs.ai-form-policy }}
+        INPUT_NO_INLINE_CHATBOT: ${{ inputs.no-inline-chatbot }}
+        INPUT_INLINE_CHATBOT_TEST: ${{ inputs.inline-chatbot-test }}
+        INPUT_CHATBOT_TEST_TIMEOUT: ${{ inputs.chatbot-test-timeout }}
+        INPUT_CHATBOT_MAX_COUNT: ${{ inputs.chatbot-max-count }}
+        INPUT_MAX_CLICKS_PER_PAGE: ${{ inputs.max-clicks-per-page }}
+        INPUT_SEVERITY: ${{ inputs.severity }}
+        INPUT_TARGET_PAGE: ${{ inputs.target-page }}
+        INPUT_CRAWL_ONLY: ${{ inputs.crawl-only }}
+        INPUT_SCAN_NAME: ${{ inputs.scan-name }}
+        INPUT_IGNORE_THIRD_PARTY: ${{ inputs.ignore-third-party }}
+        INPUT_CAPTURE_DOMAINS: ${{ inputs.capture-domains }}
+        INPUT_EXCLUDE_DOMAINS: ${{ inputs.exclude-domains }}
       run: |
         set +e
 
@@ -156,7 +312,13 @@ runs:
           REPORT_NAME="scan-report.json"
         fi
 
+        SCAN_TIMEOUT="$INPUT_TIMEOUT"
+
         # Build command arguments safely as an array
+        # Optional env passthroughs (omit when empty so CLI defaults apply)
+        OPT_ENV=()
+        [ -n "${HTTP_METHODS:-}" ] && OPT_ENV+=(-e HTTP_METHODS)
+
         DOCKER_ARGS=(
           docker run --rm
           --user "$(id -u):$(id -g)"
@@ -170,17 +332,95 @@ runs:
           -e LEVOAI_BASE_URL
           -e LEVOAI_SATELLITE_URL
           -e LEVOAI_ENV_ID
+          -e LEVOAI_USERNAME
+          -e LEVOAI_PASSWORD
+          -e LEVOAI_TOKEN
           -e PYTHONUNBUFFERED=1
+          "${OPT_ENV[@]}"
           "$LEVO_IMAGE"
           scan "$INPUT_TARGET_URL"
           --scan-depth "$INPUT_SCAN_DEPTH"
           --output "$INPUT_OUTPUT_FORMAT"
-          --timeout "$INPUT_TIMEOUT"
+          --scan-timeout "$SCAN_TIMEOUT"
           --output-file "/app/reports/$REPORT_NAME"
           --non-interactive
         )
 
-        # Append optional parameters
+        # Optional scan mode & target auth
+        [ -n "$INPUT_SCAN_MODE" ] && DOCKER_ARGS+=(--scan-mode "$INPUT_SCAN_MODE")
+        [ -n "$INPUT_TARGET_AUTH" ] && DOCKER_ARGS+=(--auth "$INPUT_TARGET_AUTH")
+        [ -n "$INPUT_TARGET_LOGIN_URL" ] && DOCKER_ARGS+=(--login-url "$INPUT_TARGET_LOGIN_URL")
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          DOCKER_ARGS+=(--cookie "$line")
+        done <<DAST_INPUT_COOKIES
+${INPUT_TARGET_COOKIES}
+DAST_INPUT_COOKIES
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          DOCKER_ARGS+=(--header "$line")
+        done <<DAST_INPUT_HEADERS
+${INPUT_TARGET_HEADERS}
+DAST_INPUT_HEADERS
+
+        # Passive / active
+        if [ "${INPUT_ENABLE_PASSIVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-passive)
+        fi
+        if [ "${INPUT_ENABLE_ACTIVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-active)
+        fi
+        [ -n "$INPUT_DISABLE_CATEGORIES" ] && DOCKER_ARGS+=(--disable-categories "$INPUT_DISABLE_CATEGORIES")
+        [ -n "$INPUT_INJECT_LOCATIONS" ] && DOCKER_ARGS+=(--inject-locations "$INPUT_INJECT_LOCATIONS")
+
+        # CVE
+        if [ "${INPUT_ENABLE_JS_CVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-js-cve)
+        fi
+        if [ "${INPUT_ENABLE_DOM_CVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-dom-cve)
+        fi
+
+        # AI
+        if [ "${INPUT_ENABLE_AI:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-ai)
+        fi
+        [ -n "$INPUT_LLM_PROVIDER" ] && DOCKER_ARGS+=(--llm-provider "$INPUT_LLM_PROVIDER")
+        [ -n "$INPUT_AI_PROMPT" ] && DOCKER_ARGS+=(--prompt "$INPUT_AI_PROMPT")
+        if [ "${INPUT_AI_FORM_FILLING:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-ai-form-filling)
+        fi
+        [ -n "$INPUT_AI_FORM_POLICY" ] && DOCKER_ARGS+=(--ai-form-policy "$INPUT_AI_FORM_POLICY")
+
+        # Chatbot
+        [ "$INPUT_NO_INLINE_CHATBOT" = "true" ] && DOCKER_ARGS+=(--no-inline-chatbot)
+        [ "$INPUT_INLINE_CHATBOT_TEST" = "true" ] && DOCKER_ARGS+=(--inline-chatbot-test)
+        [ -n "$INPUT_CHATBOT_TEST_TIMEOUT" ] && DOCKER_ARGS+=(--chatbot-test-timeout "$INPUT_CHATBOT_TEST_TIMEOUT")
+        [ -n "$INPUT_CHATBOT_MAX_COUNT" ] && DOCKER_ARGS+=(--chatbot-max-count "$INPUT_CHATBOT_MAX_COUNT")
+
+        # Crawl
+        [ -n "$INPUT_MAX_CLICKS_PER_PAGE" ] && DOCKER_ARGS+=(--max-clicks-per-page "$INPUT_MAX_CLICKS_PER_PAGE")
+
+        [ -n "$INPUT_SEVERITY" ] && DOCKER_ARGS+=(--severity "$INPUT_SEVERITY")
+
+        [ -n "$INPUT_TARGET_PAGE" ] && DOCKER_ARGS+=(--target-page "$INPUT_TARGET_PAGE")
+        [ "$INPUT_CRAWL_ONLY" = "true" ] && DOCKER_ARGS+=(--crawl-only)
+
+        [ -n "$INPUT_SCAN_NAME" ] && DOCKER_ARGS+=(--name "$INPUT_SCAN_NAME")
+
+        if [ "${INPUT_IGNORE_THIRD_PARTY:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--allow-third-party)
+        fi
+        [ -n "$INPUT_CAPTURE_DOMAINS" ] && DOCKER_ARGS+=(--capture-domains "$INPUT_CAPTURE_DOMAINS")
+        [ -n "$INPUT_EXCLUDE_DOMAINS" ] && DOCKER_ARGS+=(--exclude-domains "$INPUT_EXCLUDE_DOMAINS")
+
+        # Append optional parameters (Levo / crawl limits)
         [ -n "$INPUT_MAX_DEPTH" ] && DOCKER_ARGS+=(--max-depth "$INPUT_MAX_DEPTH")
         [ -n "$INPUT_MAX_PAGES" ] && DOCKER_ARGS+=(--max-pages "$INPUT_MAX_PAGES")
         [ -n "$LEVOAI_ENV_ID" ]   && DOCKER_ARGS+=(--env-id "$LEVOAI_ENV_ID")
