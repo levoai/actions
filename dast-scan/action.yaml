@@ -1,5 +1,10 @@
 name: "Levo.ai DAST Scanner"
 description: "Run dynamic application security testing on your web app or API"
+author: 'Levo.ai'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
 inputs:
   target-url:
     description: 'URL of the application to scan'
@@ -39,7 +44,7 @@ inputs:
     required: true
     default: 'critical'
   output-format:
-    description: 'Output format: json, sarif, table, or quiet'
+    description: 'Report format written to scan-report file: `json` or `sarif`. (Table/quiet are not supported for report outputs; use `extra-args` if your CLI needs them.)'
     required: false
     default: 'json'
   send-issues:
@@ -88,6 +93,7 @@ outputs:
   exit-code:
     description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
     value: ${{ steps.run-dast-scan.outputs.exit-code }}
+
 runs:
   using: 'composite'
   steps:
@@ -235,6 +241,12 @@ runs:
             echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
 
             echo "Results: $FINDINGS_COUNT total, $CRITICAL_COUNT critical, $HIGH_COUNT high"
+          elif [[ "$REPORT_FILE" == *.sarif ]]; then
+            echo "findings-count=0" >> "$GITHUB_OUTPUT"
+            echo "critical-findings=0" >> "$GITHUB_OUTPUT"
+            echo "high-findings=0" >> "$GITHUB_OUTPUT"
+            echo "scan-id=unknown" >> "$GITHUB_OUTPUT"
+            echo "SARIF report written; severity counts are not extracted (use output-format json for findings outputs or consume the SARIF file)."
           fi
         else
           echo "Report file not found at $REPORT_FILE"

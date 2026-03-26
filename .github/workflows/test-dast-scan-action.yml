@@ -31,13 +31,14 @@ jobs:
         id: test-scan
         uses: ./dast-scan
         with:
-          target-url: ${{ github.event.inputs.target-url || 'https://juice-shop-spec-building.levoai.app/' }}
+          # Bracket notation: hyphenated dispatch input names are not valid as github.event.inputs.target-url
+          target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           env-id: ${{ secrets.LEVOAI_ENV_ID }}
           saas-url: 'https://api.dev.levo.ai'
           fail-on-severity: 'none'
-          send-issues: 'false'
+          send-issues: 'true'
           scan-depth: 'smart'
           timeout: '600'
       - name: Verify action outputs

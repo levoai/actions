@@ -218,7 +218,7 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # [OPTIONAL] Fail workflow on findings with this severity or higher: critical, high, medium, or none. Default: critical
     fail-on-severity: 'critical'
 
-    # [OPTIONAL] Output format: json, sarif, table, or quiet. Default: json
+    # [OPTIONAL] Report file format: json or sarif. Default: json (findings outputs are only extracted from json)
     output-format: 'json'
 
     # [OPTIONAL] Send findings to Levo platform. Default: true
@@ -248,13 +248,13 @@ outputs:
   scan-report:
     description: 'Path to the scan report file (JSON or SARIF)'
   scan-id:
-    description: 'Unique scan ID'
+    description: 'Unique scan ID (unknown when output-format is sarif)'
   findings-count:
-    description: 'Total number of findings'
+    description: 'Total number of findings (from JSON report only; 0 when output-format is sarif)'
   critical-findings:
-    description: 'Number of critical findings'
+    description: 'Number of critical findings (from JSON report only; 0 when output-format is sarif)'
   high-findings:
-    description: 'Number of high severity findings'
+    description: 'Number of high severity findings (from JSON report only; 0 when output-format is sarif)'
   exit-code:
     description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
 ```
