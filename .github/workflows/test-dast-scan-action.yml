@@ -32,8 +32,8 @@ jobs:
         uses: ./dast-scan
         with:
           target-url: ${{ github.event.inputs.target-url || 'https://levoai.github.io/demo-store/' }}
-          authorization-key: ${{ secrets.LEVO_REFRESH_TOKEN }}
-          organization-id: ${{ secrets.LEVO_CI_ORGANIZATION_ID }}
+          authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
+          organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           saas-url: 'https://api.dev.levo.ai'
           fail-on-severity: 'none'
           send-issues: 'false'
