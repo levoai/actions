@@ -43,7 +43,7 @@ inputs:
     required: false
     default: 'true'
   timeout:
-    description: 'Scan timeout in seconds (passed as `--scan-timeout`).'
+    description: 'Scan timeout in seconds (passed as `--timeout` on the shadownet CLI).'
     required: false
     default: '1800'
   max-depth:
@@ -341,7 +341,7 @@ runs:
           scan "$INPUT_TARGET_URL"
           --scan-depth "$INPUT_SCAN_DEPTH"
           --output "$INPUT_OUTPUT_FORMAT"
-          --scan-timeout "$SCAN_TIMEOUT"
+          --timeout "$SCAN_TIMEOUT"
           --output-file "/app/reports/$REPORT_NAME"
           --non-interactive
         )
