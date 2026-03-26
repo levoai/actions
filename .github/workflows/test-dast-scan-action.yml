@@ -1,4 +1,8 @@
 name: Test DAST Scan Action
+
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:
@@ -31,7 +35,7 @@ jobs:
         id: test-scan
         uses: ./dast-scan
         with:
-          # Bracket notation: hyphenated dispatch input names are not valid as github.event.inputs.target-url
+          # Hyphenated workflow_dispatch inputs must use bracket form: github.event.inputs['target-url']
           target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
@@ -40,7 +44,9 @@ jobs:
           fail-on-severity: 'none'
           send-issues: 'true'
           scan-depth: 'smart'
+          output-format: 'json'
           timeout: '600'
+          scan-name: 'actions repo CI / test-dast-scan-action.yml'
       - name: Verify action outputs
         if: always()
         env:

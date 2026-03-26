@@ -233,8 +233,8 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # [OPTIONAL] Use this option to pass extra CLI arguments.
     extra-args: ''
 
-    # [OPTIONAL] Tag for levoai/levoai-shadownet (image name is fixed). Default: latest
-    shadownet-version: 'latest'
+    # [OPTIONAL] Default: latest
+    version: 'latest'
 ```
 <!-- end usage -->
 

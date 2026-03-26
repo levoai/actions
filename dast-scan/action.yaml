@@ -61,8 +61,8 @@ inputs:
   extra-args:
     description: 'Additional arguments to pass to shadownet CLI'
     required: false
-  shadownet-version:
-    description: 'Image tag for `levoai/levoai-shadownet:<version>`.'
+  version:
+    description: 'Version'
     required: false
     default: 'latest'
 
@@ -278,7 +278,7 @@ runs:
         LEVO_HOME="${{ runner.temp }}/levo-home"
         mkdir -p "$REPORTS_DIR" "$LEVO_HOME/.config/configstore" "$LEVO_HOME/.shadownet"
 
-        LEVO_IMAGE="levoai/levoai-shadownet:${{ inputs.shadownet-version }}"
+        LEVO_IMAGE="levoai/levoai-shadownet:${{ inputs.version }}"
         echo "Pulling Docker image: $LEVO_IMAGE"
         docker pull "$LEVO_IMAGE"
 
