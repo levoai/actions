@@ -34,6 +34,7 @@ jobs:
           target-url: ${{ github.event.inputs.target-url || 'https://levoai.github.io/demo-store/' }}
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
+          env-id: ${{ secrets.LEVOAI_ENV_ID }}
           saas-url: 'https://api.dev.levo.ai'
           fail-on-severity: 'none'
           send-issues: 'false'
