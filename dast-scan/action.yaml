@@ -1,0 +1,563 @@
+name: "Levo.ai DAST Scanner"
+description: "Run dynamic application security testing on your web app or API"
+author: 'Levo.ai'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  target-url:
+    description: 'URL of the application to scan'
+    required: true
+  authorization-key:
+    description: 'Levo.ai API key for advanced features. Get it from https://app.levo.ai/settings/keys'
+    required: false
+  organization-id:
+    description: 'Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization'
+    required: false
+  saas-url:
+    description: 'Levo.ai SaaS base URL'
+    required: true
+    default: "https://api.levo.ai"
+  satellite-url:
+    description: 'Levo.ai satellite URL for capturing traffic'
+    required: false
+    default: 'https://satellite.levo.ai'
+  env-id:
+    description: 'Environment ID for Levo integration'
+    required: false
+  scan-depth:
+    description: 'Scan depth: smart or thorough'
+    required: false
+    default: 'smart'
+  fail-on-severity:
+    description: 'Fail workflow on findings with this severity or higher: critical, high, medium, or none'
+    required: true
+    default: 'critical'
+  output-format:
+    description: 'Report format written to scan-report file: `json` or `sarif`. (Table/quiet are not supported for report outputs; use `extra-args` if your CLI needs them.)'
+    required: false
+    default: 'json'
+  send-issues:
+    description: 'Send findings to Levo platform'
+    required: false
+    default: 'true'
+  timeout:
+    description: 'Scan timeout in seconds (passed as `--timeout` on the shadownet CLI).'
+    required: false
+    default: '1800'
+  max-depth:
+    description: 'Maximum crawl depth'
+    required: false
+  max-pages:
+    description: 'Maximum pages to crawl'
+    required: false
+  openai-api-key:
+    description: 'OpenAI API key for AI-powered analysis'
+    required: false
+  anthropic-api-key:
+    description: 'Anthropic API key for AI-powered analysis'
+    required: false
+  extra-args:
+    description: 'Additional arguments to pass to shadownet CLI'
+    required: false
+  version:
+    description: 'Version'
+    required: false
+    default: 'latest'
+
+  # --- App authentication (CLI scan) ---
+  auth:
+    description: 'Authentication strategy (`--auth`, e.g. none, basic, bearer, form).'
+    required: false
+  username:
+    description: 'Username for authenticated scans (`LEVOAI_USERNAME`).'
+    required: false
+  password:
+    description: 'Password for authenticated scans (`LEVOAI_PASSWORD`).'
+    required: false
+  token:
+    description: 'Bearer token (`LEVOAI_TOKEN`).'
+    required: false
+  login-url:
+    description: 'Login page URL for form auth (`--login-url`).'
+    required: false
+  cookies:
+    description: 'One `key=value` cookie per line (`--cookie`, repeatable).'
+    required: false
+  headers:
+    description: 'One `Name: Value` header per line (`--header`, repeatable).'
+
+  # --- Scan phases ---
+  enable-passive:
+    description: 'Enable passive scanning (`--passive` / `--no-passive`).'
+    required: false
+    default: 'true'
+  enable-active:
+    description: 'Enable active scanning (`--active` / `--no-active`).'
+    required: false
+    default: 'true'
+  disable-categories:
+    description: 'Comma-separated categories to disable (`--disable-categories`).'
+    required: false
+  inject-locations:
+    description: 'Comma-separated injection locations (`--inject-locations`).'
+    required: false
+  http-methods:
+    description: 'Comma-separated HTTP methods for active testing (`HTTP_METHODS` env).'
+    required: false
+
+  # --- CVE toggles ---
+  enable-js-cve:
+    description: 'Enable JS library CVE scanning (`--js-cve` / `--no-js-cve`).'
+    required: false
+    default: 'true'
+  enable-dom-cve:
+    description: 'Enable DOM CVE scanning (`--dom-cve` / `--no-dom-cve`).'
+    required: false
+    default: 'true'
+
+  # --- AI ---
+  enable-ai:
+    description: 'Enable AI analysis (`--ai` / `--no-ai`).'
+    required: false
+    default: 'true'
+  llm-provider:
+    description: 'LLM provider (`--llm-provider`, e.g. openai, anthropic).'
+    required: false
+    default: 'openai'
+  ai-prompt:
+    description: 'Custom AI crawler prompt (`--prompt`).'
+    required: false
+  ai-form-filling:
+    description: 'AI form filling (`--ai-form-filling` / `--no-ai-form-filling`).'
+    required: false
+    default: 'true'
+  ai-form-policy:
+    description: 'AI form policy: conservative, moderate, aggressive (`--ai-form-policy`).'
+    required: false
+    default: 'aggressive'
+
+  # --- Chatbot ---
+  no-inline-chatbot:
+    description: 'Disable inline chatbot detection (`--no-inline-chatbot`).'
+    required: false
+    default: 'false'
+  inline-chatbot-test:
+    description: 'Run security tests on detected chatbots (`--inline-chatbot-test`).'
+    required: false
+    default: 'false'
+  chatbot-test-timeout:
+    description: 'Seconds per chatbot test (`--chatbot-test-timeout`).'
+    required: false
+  chatbot-max-count:
+    description: 'Max chatbots to test (`--chatbot-max-count`).'
+    required: false
+
+  # --- Crawl ---
+  max-clicks-per-page:
+    description: 'Max clicks per page (`--max-clicks-per-page`).'
+    required: false
+
+  severity:
+    description: 'Minimum severity to report (`--severity`).'
+    required: false
+
+  target-page:
+    description: 'Single-page scan (`--target-page`).'
+    required: false
+  crawl-only:
+    description: 'Crawl only, no security tests (`--crawl-only`).'
+    required: false
+    default: 'false'
+
+  scan-name:
+    description: 'Display name for the scan (`--name`).'
+    required: false
+
+  ignore-third-party:
+    description: 'Ignore third-party APIs (`--ignore-third-party` / `--allow-third-party`).'
+    required: false
+    default: 'true'
+  capture-domains:
+    description: 'Comma-separated capture domain pattern whitelist (`--capture-domains`).'
+    required: false
+  exclude-domains:
+    description: 'Comma-separated extra excluded domains pattern (`--exclude-domains`).'
+    required: false
+
+outputs:
+  scan-report:
+    description: 'Path to the scan report file (JSON or SARIF)'
+    value: ${{ steps.run-dast-scan.outputs.report-path }}
+  scan-id:
+    description: 'Unique scan ID'
+    value: ${{ steps.run-dast-scan.outputs.scan-id }}
+  findings-count:
+    description: 'Total number of findings'
+    value: ${{ steps.run-dast-scan.outputs.findings-count }}
+  critical-findings:
+    description: 'Number of critical findings'
+    value: ${{ steps.run-dast-scan.outputs.critical-findings }}
+  high-findings:
+    description: 'Number of high severity findings'
+    value: ${{ steps.run-dast-scan.outputs.high-findings }}
+  medium-findings:
+    description: 'Number of medium severity findings'
+    value: ${{ steps.run-dast-scan.outputs.medium-findings }}
+  low-findings:
+    description: 'Number of low severity findings'
+    value: ${{ steps.run-dast-scan.outputs.low-findings }}
+  info-findings:
+    description: 'Number of informational findings (info or informational in report)'
+    value: ${{ steps.run-dast-scan.outputs.info-findings }}
+  findings-by-severity:
+    description: 'JSON object of counts keyed by severity from the report (empty for SARIF / no report)'
+    value: ${{ steps.run-dast-scan.outputs.findings-by-severity }}
+  exit-code:
+    description: 'Scan exit code (0=success, non-zero=failure or findings above threshold)'
+    value: ${{ steps.run-dast-scan.outputs.exit-code }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: run-dast-scan
+      shell: bash
+      env:
+        OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        LEVOAI_AUTH_KEY: ${{ inputs.authorization-key }}
+        LEVOAI_ORG_ID: ${{ inputs.organization-id }}
+        LEVOAI_BASE_URL: ${{ inputs.saas-url }}
+        LEVOAI_SATELLITE_URL: ${{ inputs.satellite-url }}
+        LEVOAI_ENV_ID: ${{ inputs.env-id }}
+        LEVOAI_USERNAME: ${{ inputs.username }}
+        LEVOAI_PASSWORD: ${{ inputs.password }}
+        LEVOAI_TOKEN: ${{ inputs.token }}
+        HTTP_METHODS: ${{ inputs.http-methods }}
+        INPUT_TARGET_URL: ${{ inputs.target-url }}
+        INPUT_SCAN_DEPTH: ${{ inputs.scan-depth }}
+        INPUT_OUTPUT_FORMAT: ${{ inputs.output-format }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_MAX_DEPTH: ${{ inputs.max-depth }}
+        INPUT_MAX_PAGES: ${{ inputs.max-pages }}
+        INPUT_SEND_ISSUES: ${{ inputs.send-issues }}
+        INPUT_EXTRA_ARGS: ${{ inputs.extra-args }}
+        INPUT_FAIL_ON_SEVERITY: ${{ inputs.fail-on-severity }}
+        INPUT_AUTH: ${{ inputs.auth }}
+        INPUT_LOGIN_URL: ${{ inputs.login-url }}
+        INPUT_COOKIES: ${{ inputs.cookies }}
+        INPUT_HEADERS: ${{ inputs.headers }}
+        INPUT_ENABLE_PASSIVE: ${{ inputs.enable-passive }}
+        INPUT_ENABLE_ACTIVE: ${{ inputs.enable-active }}
+        INPUT_DISABLE_CATEGORIES: ${{ inputs.disable-categories }}
+        INPUT_INJECT_LOCATIONS: ${{ inputs.inject-locations }}
+        INPUT_ENABLE_JS_CVE: ${{ inputs.enable-js-cve }}
+        INPUT_ENABLE_DOM_CVE: ${{ inputs.enable-dom-cve }}
+        INPUT_ENABLE_AI: ${{ inputs.enable-ai }}
+        INPUT_LLM_PROVIDER: ${{ inputs.llm-provider }}
+        INPUT_AI_PROMPT: ${{ inputs.ai-prompt }}
+        INPUT_AI_FORM_FILLING: ${{ inputs.ai-form-filling }}
+        INPUT_AI_FORM_POLICY: ${{ inputs.ai-form-policy }}
+        INPUT_NO_INLINE_CHATBOT: ${{ inputs.no-inline-chatbot }}
+        INPUT_INLINE_CHATBOT_TEST: ${{ inputs.inline-chatbot-test }}
+        INPUT_CHATBOT_TEST_TIMEOUT: ${{ inputs.chatbot-test-timeout }}
+        INPUT_CHATBOT_MAX_COUNT: ${{ inputs.chatbot-max-count }}
+        INPUT_MAX_CLICKS_PER_PAGE: ${{ inputs.max-clicks-per-page }}
+        INPUT_SEVERITY: ${{ inputs.severity }}
+        INPUT_TARGET_PAGE: ${{ inputs.target-page }}
+        INPUT_CRAWL_ONLY: ${{ inputs.crawl-only }}
+        INPUT_SCAN_NAME: ${{ inputs.scan-name }}
+        INPUT_IGNORE_THIRD_PARTY: ${{ inputs.ignore-third-party }}
+        INPUT_CAPTURE_DOMAINS: ${{ inputs.capture-domains }}
+        INPUT_EXCLUDE_DOMAINS: ${{ inputs.exclude-domains }}
+      run: |
+        set +e
+
+        REPORTS_DIR="${{ github.workspace }}/reports"
+        LEVO_HOME="${{ runner.temp }}/levo-home"
+        mkdir -p "$REPORTS_DIR" "$LEVO_HOME/.config/configstore" "$LEVO_HOME/.shadownet"
+
+        LEVO_IMAGE="levoai/levoai-shadownet:${{ inputs.version }}"
+        echo "Pulling Docker image: $LEVO_IMAGE"
+        docker pull "$LEVO_IMAGE"
+
+        # Authenticate with Levo if credentials are provided
+        if [ -n "$LEVOAI_AUTH_KEY" ] && [ -n "$LEVOAI_ORG_ID" ]; then
+          echo "Authenticating with Levo..."
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/levo-home \
+            -v "$LEVO_HOME:/tmp/levo-home" \
+            -e LEVOAI_AUTH_KEY \
+            -e LEVOAI_ORG_ID \
+            -e LEVOAI_BASE_URL \
+            "$LEVO_IMAGE" \
+            login -k "$LEVOAI_AUTH_KEY" -o "$LEVOAI_ORG_ID"
+          LOGIN_EXIT=$?
+          if [ "$LOGIN_EXIT" -ne 0 ]; then
+            echo "::error::Levo login failed (exit $LOGIN_EXIT). Verify authorization-key, organization-id, and saas-url match your org."
+            exit "$LOGIN_EXIT"
+          fi
+        fi
+
+        # Determine report file extension
+        if [ "$INPUT_OUTPUT_FORMAT" = "sarif" ]; then
+          REPORT_NAME="scan-report.sarif"
+        else
+          REPORT_NAME="scan-report.json"
+        fi
+
+        SCAN_TIMEOUT="$INPUT_TIMEOUT"
+
+        # Build command arguments safely as an array
+        # Optional env passthroughs (omit when empty so CLI defaults apply)
+        OPT_ENV=()
+        [ -n "${HTTP_METHODS:-}" ] && OPT_ENV+=(-e HTTP_METHODS)
+
+        DOCKER_ARGS=(
+          docker run --rm
+          --user "$(id -u):$(id -g)"
+          -e HOME=/tmp/levo-home
+          -v "$LEVO_HOME:/tmp/levo-home"
+          -v "$REPORTS_DIR:/app/reports"
+          -e OPENAI_API_KEY
+          -e ANTHROPIC_API_KEY
+          -e LEVOAI_AUTH_KEY
+          -e LEVOAI_ORG_ID
+          -e LEVOAI_BASE_URL
+          -e LEVOAI_SATELLITE_URL
+          -e LEVOAI_ENV_ID
+          -e LEVOAI_USERNAME
+          -e LEVOAI_PASSWORD
+          -e LEVOAI_TOKEN
+          -e PYTHONUNBUFFERED=1
+          "${OPT_ENV[@]}"
+          "$LEVO_IMAGE"
+          scan "$INPUT_TARGET_URL"
+          --scan-depth "$INPUT_SCAN_DEPTH"
+          --output "$INPUT_OUTPUT_FORMAT"
+          --timeout "$SCAN_TIMEOUT"
+          --output-file "/app/reports/$REPORT_NAME"
+          --non-interactive
+        )
+
+        # Optional app auth
+        [ -n "$INPUT_AUTH" ] && DOCKER_ARGS+=(--auth "$INPUT_AUTH")
+        [ -n "$INPUT_LOGIN_URL" ] && DOCKER_ARGS+=(--login-url "$INPUT_LOGIN_URL")
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          DOCKER_ARGS+=(--cookie "$line")
+        done <<< "${INPUT_COOKIES:-}"
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          DOCKER_ARGS+=(--header "$line")
+        done <<< "${INPUT_HEADERS:-}"
+
+        # Passive / active
+        if [ "${INPUT_ENABLE_PASSIVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-passive)
+        fi
+        if [ "${INPUT_ENABLE_ACTIVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-active)
+        fi
+        [ -n "$INPUT_DISABLE_CATEGORIES" ] && DOCKER_ARGS+=(--disable-categories "$INPUT_DISABLE_CATEGORIES")
+        [ -n "$INPUT_INJECT_LOCATIONS" ] && DOCKER_ARGS+=(--inject-locations "$INPUT_INJECT_LOCATIONS")
+
+        # CVE
+        if [ "${INPUT_ENABLE_JS_CVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-js-cve)
+        fi
+        if [ "${INPUT_ENABLE_DOM_CVE:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-dom-cve)
+        fi
+
+        # AI
+        if [ "${INPUT_ENABLE_AI:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-ai)
+        fi
+        [ -n "$INPUT_LLM_PROVIDER" ] && DOCKER_ARGS+=(--llm-provider "$INPUT_LLM_PROVIDER")
+        [ -n "$INPUT_AI_PROMPT" ] && DOCKER_ARGS+=(--prompt "$INPUT_AI_PROMPT")
+        if [ "${INPUT_AI_FORM_FILLING:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--no-ai-form-filling)
+        fi
+        [ -n "$INPUT_AI_FORM_POLICY" ] && DOCKER_ARGS+=(--ai-form-policy "$INPUT_AI_FORM_POLICY")
+
+        # Chatbot
+        [ "$INPUT_NO_INLINE_CHATBOT" = "true" ] && DOCKER_ARGS+=(--no-inline-chatbot)
+        [ "$INPUT_INLINE_CHATBOT_TEST" = "true" ] && DOCKER_ARGS+=(--inline-chatbot-test)
+        [ -n "$INPUT_CHATBOT_TEST_TIMEOUT" ] && DOCKER_ARGS+=(--chatbot-test-timeout "$INPUT_CHATBOT_TEST_TIMEOUT")
+        [ -n "$INPUT_CHATBOT_MAX_COUNT" ] && DOCKER_ARGS+=(--chatbot-max-count "$INPUT_CHATBOT_MAX_COUNT")
+
+        # Crawl
+        [ -n "$INPUT_MAX_CLICKS_PER_PAGE" ] && DOCKER_ARGS+=(--max-clicks-per-page "$INPUT_MAX_CLICKS_PER_PAGE")
+
+        [ -n "$INPUT_SEVERITY" ] && DOCKER_ARGS+=(--severity "$INPUT_SEVERITY")
+
+        [ -n "$INPUT_TARGET_PAGE" ] && DOCKER_ARGS+=(--target-page "$INPUT_TARGET_PAGE")
+        [ "$INPUT_CRAWL_ONLY" = "true" ] && DOCKER_ARGS+=(--crawl-only)
+
+        [ -n "$INPUT_SCAN_NAME" ] && DOCKER_ARGS+=(--name "$INPUT_SCAN_NAME")
+
+        if [ "${INPUT_IGNORE_THIRD_PARTY:-true}" != "true" ]; then
+          DOCKER_ARGS+=(--allow-third-party)
+        fi
+        [ -n "$INPUT_CAPTURE_DOMAINS" ] && DOCKER_ARGS+=(--capture-domains "$INPUT_CAPTURE_DOMAINS")
+        [ -n "$INPUT_EXCLUDE_DOMAINS" ] && DOCKER_ARGS+=(--exclude-domains "$INPUT_EXCLUDE_DOMAINS")
+
+        # Append optional parameters (Levo / crawl limits)
+        [ -n "$INPUT_MAX_DEPTH" ] && DOCKER_ARGS+=(--max-depth "$INPUT_MAX_DEPTH")
+        [ -n "$INPUT_MAX_PAGES" ] && DOCKER_ARGS+=(--max-pages "$INPUT_MAX_PAGES")
+        [ -n "$LEVOAI_ENV_ID" ]   && DOCKER_ARGS+=(--env-id "$LEVOAI_ENV_ID")
+
+        if [ "$INPUT_SEND_ISSUES" = "true" ] && [ -n "$LEVOAI_AUTH_KEY" ] && [ -n "$LEVOAI_ORG_ID" ]; then
+          DOCKER_ARGS+=(--send-issues)
+        fi
+
+        # Extra args are intentionally word-split here
+        if [ -n "$INPUT_EXTRA_ARGS" ]; then
+          read -ra EXTRA <<< "$INPUT_EXTRA_ARGS"
+          DOCKER_ARGS+=("${EXTRA[@]}")
+        fi
+
+        echo "Scan Configuration:"
+        echo "  Target: $INPUT_TARGET_URL"
+        [ -n "$LEVOAI_ENV_ID" ]   && echo "  Env ID: ***"
+        echo "  Satellite URL: ${LEVOAI_SATELLITE_URL:-not set}"
+        echo "  Base URL: ${LEVOAI_BASE_URL:-not set}"
+        [ -n "$LEVOAI_AUTH_KEY" ] && [ -n "$LEVOAI_ORG_ID" ] && echo "  Auth: Authenticated with Levo"
+        echo ""
+
+        echo "Starting scan..."
+        "${DOCKER_ARGS[@]}"
+        SCAN_EXIT_CODE=$?
+
+        # Locate the report file
+        REPORT_FILE="$REPORTS_DIR/$REPORT_NAME"
+
+        if [ -f "$REPORT_FILE" ]; then
+          echo "Report found: $REPORT_FILE"
+          echo "report-path=$REPORT_FILE" >> "$GITHUB_OUTPUT"
+
+          if [[ "$REPORT_FILE" == *.json ]]; then
+            if command -v jq &> /dev/null; then
+              FINDINGS_COUNT=$(jq '.findings.total // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              CRITICAL_COUNT=$(jq '.findings.by_severity.critical // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              HIGH_COUNT=$(jq '.findings.by_severity.high // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              MEDIUM_COUNT=$(jq '.findings.by_severity.medium // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              LOW_COUNT=$(jq '.findings.by_severity.low // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              INFO_COUNT=$(jq '(.findings.by_severity // {}) | .info // .informational // 0' "$REPORT_FILE" 2>/dev/null || echo "0")
+              SCAN_ID=$(jq -r '.scan_id // "unknown"' "$REPORT_FILE" 2>/dev/null || echo "unknown")
+              SEVERITY_JSON=$(jq -c '.findings.by_severity // {}' "$REPORT_FILE" 2>/dev/null || echo "{}")
+            else
+              FINDINGS_COUNT=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('findings',{}).get('total',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              bs_py="import json,sys;d=json.load(open(sys.argv[1]));b=d.get('findings',{}).get('by_severity') or {}"
+              CRITICAL_COUNT=$(python3 -c "$bs_py;print(b.get('critical',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              HIGH_COUNT=$(python3 -c "$bs_py;print(b.get('high',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              MEDIUM_COUNT=$(python3 -c "$bs_py;print(b.get('medium',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              LOW_COUNT=$(python3 -c "$bs_py;print(b.get('low',0))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              INFO_COUNT=$(python3 -c "$bs_py;print(b.get('info',b.get('informational',0)))" "$REPORT_FILE" 2>/dev/null || echo "0")
+              SCAN_ID=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(d.get('scan_id','unknown'))" "$REPORT_FILE" 2>/dev/null || echo "unknown")
+              SEVERITY_JSON=$(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(json.dumps(d.get('findings',{}).get('by_severity') or {}))" "$REPORT_FILE" 2>/dev/null || echo "{}")
+            fi
+
+            echo "findings-count=$FINDINGS_COUNT" >> "$GITHUB_OUTPUT"
+            echo "critical-findings=$CRITICAL_COUNT" >> "$GITHUB_OUTPUT"
+            echo "high-findings=$HIGH_COUNT" >> "$GITHUB_OUTPUT"
+            echo "medium-findings=$MEDIUM_COUNT" >> "$GITHUB_OUTPUT"
+            echo "low-findings=$LOW_COUNT" >> "$GITHUB_OUTPUT"
+            echo "info-findings=$INFO_COUNT" >> "$GITHUB_OUTPUT"
+            {
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "$SEVERITY_JSON"
+              echo "DAST_SEVERITY_JSON"
+            } >> "$GITHUB_OUTPUT"
+            echo "scan-id=$SCAN_ID" >> "$GITHUB_OUTPUT"
+
+            echo ""
+            echo "┌─────────────────────────────────────────────────────────────"
+            echo "│ Findings summary"
+            echo "├─────────────────────────────────────────────────────────────"
+            printf "│ %-18s %s\n" "Scan ID" "$SCAN_ID"
+            printf "│ %-18s %s\n" "Total" "$FINDINGS_COUNT"
+            printf "│ %-18s %s\n" "Critical" "$CRITICAL_COUNT"
+            printf "│ %-18s %s\n" "High" "$HIGH_COUNT"
+            printf "│ %-18s %s\n" "Medium" "$MEDIUM_COUNT"
+            printf "│ %-18s %s\n" "Low" "$LOW_COUNT"
+            printf "│ %-18s %s\n" "Informational" "$INFO_COUNT"
+            echo "├─────────────────────────────────────────────────────────────"
+            echo "│ By severity (JSON):"
+            echo "$SEVERITY_JSON" | sed 's/^/│ /'
+            echo "└─────────────────────────────────────────────────────────────"
+            echo ""
+          elif [[ "$REPORT_FILE" == *.sarif ]]; then
+            echo "findings-count=0" >> "$GITHUB_OUTPUT"
+            echo "critical-findings=0" >> "$GITHUB_OUTPUT"
+            echo "high-findings=0" >> "$GITHUB_OUTPUT"
+            echo "medium-findings=0" >> "$GITHUB_OUTPUT"
+            echo "low-findings=0" >> "$GITHUB_OUTPUT"
+            echo "info-findings=0" >> "$GITHUB_OUTPUT"
+            {
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "{}"
+              echo "DAST_SEVERITY_JSON"
+            } >> "$GITHUB_OUTPUT"
+            echo "scan-id=unknown" >> "$GITHUB_OUTPUT"
+            echo "SARIF report written; severity counts are not extracted (use output-format json for findings outputs or consume the SARIF file)."
+          fi
+        else
+          echo "Report file not found at $REPORT_FILE"
+          ls -la "$REPORTS_DIR" 2>/dev/null || echo "Reports directory does not exist"
+          if [ "$SCAN_EXIT_CODE" -ne 0 ]; then
+            echo "::error::Scan exited with code $SCAN_EXIT_CODE before writing a report. Check logs above (credentials, env-id, target URL, network). If login succeeded, the failure is usually during the scan phase."
+          else
+            echo "::error::Scan reported success (exit 0) but no report file was written at $REPORT_FILE — unexpected; check container permissions and --output-file path."
+          fi
+          echo "report-path=" >> "$GITHUB_OUTPUT"
+          echo "findings-count=0" >> "$GITHUB_OUTPUT"
+          echo "critical-findings=0" >> "$GITHUB_OUTPUT"
+          echo "high-findings=0" >> "$GITHUB_OUTPUT"
+          echo "medium-findings=0" >> "$GITHUB_OUTPUT"
+          echo "low-findings=0" >> "$GITHUB_OUTPUT"
+          echo "info-findings=0" >> "$GITHUB_OUTPUT"
+          {
+            echo "findings-by-severity<<DAST_SEVERITY_JSON"
+            echo "{}"
+            echo "DAST_SEVERITY_JSON"
+          } >> "$GITHUB_OUTPUT"
+          echo "scan-id=unknown" >> "$GITHUB_OUTPUT"
+        fi
+
+        echo "exit-code=$SCAN_EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+        # Apply fail-on-severity logic
+        if [ "$INPUT_FAIL_ON_SEVERITY" != "none" ]; then
+          case "$INPUT_FAIL_ON_SEVERITY" in
+            critical)
+              if [ "${CRITICAL_COUNT:-0}" -gt 0 ]; then
+                echo "::error::Found $CRITICAL_COUNT critical severity findings"
+                exit 1
+              fi
+              ;;
+            high)
+              if [ "${CRITICAL_COUNT:-0}" -gt 0 ] || [ "${HIGH_COUNT:-0}" -gt 0 ]; then
+                echo "::error::Found $(( ${CRITICAL_COUNT:-0} + ${HIGH_COUNT:-0} )) high or critical severity findings"
+                exit 1
+              fi
+              ;;
+            medium)
+              if [ "$SCAN_EXIT_CODE" -ne 0 ]; then
+                echo "::error::Scan failed or found findings at medium severity or higher"
+                exit "$SCAN_EXIT_CODE"
+              fi
+              ;;
+          esac
+        fi
+
+        exit "$SCAN_EXIT_CODE"
