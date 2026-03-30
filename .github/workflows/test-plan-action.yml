@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: ./test-plan
         with:
           plan: "continuous_testing_levo_ai_auth0:ws/continuous_testing:app/Demo_crAPI:tp/Demo_crAPI"
