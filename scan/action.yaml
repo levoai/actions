@@ -35,6 +35,7 @@ runs:
 
         set +e
         OUTPUT=$(docker run --rm --name levo-code-scanner \
+          --user "$(id -u):$(id -g)" \
           -e LEVO_BASE_URL=${{ inputs.saas-url }} \
           -e TERM=xterm-256color \
           -v "$PWD":/workspace:rw \
