@@ -1,18 +1,22 @@
-name: "Levo Action to scan repository for API endpoints"
-description: "Scan source code for API endpoints using the Levo Code Scanner and upload OpenAPI specs to the Levo dashboard"
+name: "Levo Source Code API Discovery"
+description: "Statically analyze application source code to discover REST API endpoints and import them into Levo.ai as an OpenAPI specification."
 inputs:
   authorization-key:
-    description: 'Authorization key for CLI to run. Get it from https://app.levo.ai/settings/keys'
+    description: 'Levo CLI authorization key. Get yours at https://app.levo.ai/settings/keys'
     required: true
   organization-id:
-    description: 'Levo Organization ID'
+    description: 'Levo organization ID. Find it at https://app.levo.ai/settings/organization'
     required: true
   app-name:
-    description: 'Application name'
+    description: 'Application name to display on the Levo dashboard. The application record is created automatically on first scan.'
     required: true
   language:
-    description: 'Programming language of the repo (java, python, javascript, typescript, c, cpp, php, ruby)'
+    description: 'Programming language of the repository. Supported: java, jar, javascript, typescript, python, c, cpp, csharp, php, ruby, apk'
     required: true
+  dir:
+    description: 'Relative subdirectory (e.g. ./path/to/sub-directory) to scan. Use "." to scan the repository root.'
+    required: false
+    default: '.'
   env-name:
     description: 'Environment name'
     required: false
@@ -30,7 +34,7 @@ runs:
   steps:
     - id: run-scan-repo
       run: |
-        echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, env: ${{ inputs.env-name }})"
+        echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
 
         set +e
@@ -42,6 +46,7 @@ runs:
           ${{ inputs.scanner-docker-image }} \
           --app-name "${{ inputs.app-name }}" \
           --language ${{ inputs.language }} \
+          --dir "${{ inputs.dir }}" \
           --env-name ${{ inputs.env-name }} \
           -k ${{ inputs.authorization-key }} \
           -o ${{ inputs.organization-id }} 2>&1)
