@@ -8,7 +8,7 @@
   - [Test Application Action](#test-application-action)
     - [Usage](#usage-2)
     - [Output](#output-2)
-  - [Scan Repository](#scan-repository)
+  - [Source Code API Discovery](#source-code-api-discovery)
     - [Usage](#usage-3)
     - [Output](#output-3)
   - [DAST Scanner](#dast-scanner)
@@ -155,11 +155,11 @@ outputs:
     description: '# of skipped test cases'
 ```
 
-## Scan Repository
+## Source Code API Discovery
 
-This action scans a repository and import results to your [Levo-app](https://app.levo.ai) organization dashboard.
+This action statically analyzes application source code to discover REST API endpoints and imports them into your [Levo.ai](https://app.levo.ai) organization as an OpenAPI 3.0.1 specification. The application is never executed, no traffic is captured, and no staging environment is required — source code never leaves the runner; only the generated specification is uploaded.
 
-This action will require you to have a Levo account and provide a Authorization Key and Organization ID.
+Requires a Levo account (Authorization Key + Organization ID) and Docker on the runner.
 
 ### Usage
 
@@ -167,23 +167,29 @@ This action will require you to have a Levo account and provide a Authorization 
 ```yaml
 - uses: levoai/actions/scan@v2.1.2
   with:
-    # Authorization key required to execute the Levo CLI. Please refer to https://app.levo.ai/settings/keys to get your authorization key.
+    # Levo CLI authorization key. Get yours at https://app.levo.ai/settings/keys
     authorization-key: ''
 
-    # The ID of your organization in Levo dashboard. Please refer to https://app.levo.ai/settings/organization to get your organization id.
+    # Your Levo organization ID. Find it at https://app.levo.ai/settings/organization
     organization-id: ''
-    
-    # The name of the application to be created in Levo.
+
+    # Application name to display on the Levo dashboard. The application record is created automatically on first scan.
     app-name: ''
 
-    # [Optional] The name of the environment in which app must be created in Levo.
+    # Programming language of the repository. Supported: java, jar, javascript, typescript, python, c, cpp, csharp, php, ruby, apk
+    language: ''
+
+    # [Optional] Relative subdirectory (e.g. ./path/to/sub-directory) to scan. Use "." to scan the repository root.
+    dir: '.'
+
+    # [Optional] Target environment. Default: staging.
     env-name: ''
 ```
 <!-- end usage -->
 
 ### Output
 
-This action will create an application in Levo[https://app.levo.ai] and import the results of the scan.
+The action imports discovered endpoints into the Levo dashboard under the application named by `app-name`, in the environment named by `env-name`.
 
 ## DAST Scanner
 
