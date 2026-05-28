@@ -16,7 +16,7 @@ set -euo pipefail
 body=$(gh api "repos/${REPO}/pulls/${PR_NUM}" --jq '.body // ""')
 
 # Skip if release-note: already present anywhere in the body (allow leading whitespace)
-if printf '%s' "$body" | grep -qE '^[[:space:]]*release-note:'; then
+if grep -qE '^[[:space:]]*release-note:' <<< "$body"; then
   echo "release-note: already present in PR body, skipping autofill"
   exit 0
 fi
@@ -24,7 +24,7 @@ fi
 # Skip if title does not match cleanup prefixes.
 # Matches: chore:, refactor:, test:, docs:, ci:, build:
 # Also matches scoped variants like chore(deps):, refactor(iam):
-if ! printf '%s' "$PR_TITLE" | grep -qE '^(chore|refactor|test|docs|ci|build)(\([^)]*\))?:'; then
+if ! grep -qE '^(chore|refactor|test|docs|ci|build)(\([^)]*\))?:' <<< "$PR_TITLE"; then
   echo "Title prefix not in autofill list, skipping"
   exit 0
 fi

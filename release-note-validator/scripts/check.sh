@@ -16,7 +16,7 @@ set -euo pipefail
 body=$(gh api "repos/${REPO}/pulls/${PR_NUM}" --jq '.body // ""')
 
 # release-note: line must exist (allow leading whitespace for indented Markdown)
-if ! printf '%s' "$body" | grep -qE '^[[:space:]]*release-note:'; then
+if ! grep -qE '^[[:space:]]*release-note:' <<< "$body"; then
   echo "::error::Missing 'release-note:' block in PR description."
   echo "::notice::Add ONE of the following lines to your PR description:"
   echo "::notice::  release-note: NONE"
