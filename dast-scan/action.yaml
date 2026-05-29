@@ -108,6 +108,9 @@ inputs:
       Extra credential field(s) for rule-based form login, one per line
       (`--auth-field`, repeatable). Format: `[<prefix>=]<locator>:<value>`
       (prefix: label|placeholder|name|id|css, default label), e.g. `Access Code:9876`.
+      Note: like `cookies`/`headers`, values are passed on the scanner command
+      line (the CLI has no env equivalent for this option), so avoid embedding
+      high-value secrets here.
     required: false
   wait-for-mfa:
     description: 'Pause after login to allow manual MFA/verification (`--wait-for-mfa`). Off by default.'
@@ -652,7 +655,10 @@ runs:
         exit "$SCAN_EXIT_CODE"
 
     - name: Post findings summary as PR comment
-      if: ${{ always() && github.event_name == 'pull_request' }}
+      # Only when a report was actually produced — skips early-exit cases
+      # (e.g. missing config-file, login/scan failure) where counts are unset,
+      # so we never post a misleading "0 findings" comment.
+      if: ${{ always() && github.event_name == 'pull_request' && steps.run-dast-scan.outputs.report-path != '' }}
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
