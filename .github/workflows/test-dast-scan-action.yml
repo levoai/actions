@@ -44,6 +44,8 @@ jobs:
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           env-id: ${{ secrets.LEVOAI_ENV_ID }}
           saas-url: 'https://api.dev.levo.ai'
+          # Satellite must match the dev base URL, not the prod default.
+          satellite-url: 'https://satellite.dev.levo.ai'
           fail-on-severity: 'none'
           send-issues: 'true'
           scan-depth: 'smart'
