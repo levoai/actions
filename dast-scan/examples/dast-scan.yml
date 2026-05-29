@@ -1,0 +1,62 @@
+# Sample workflow for the Levo.ai DAST scan action.
+# Copy this into your repository at .github/workflows/dast-scan.yml and adjust
+# `target-url` and secrets to taste.
+name: DAST scan
+
+on:
+  # Scan on pull requests and post a findings summary as a PR comment.
+  pull_request:
+  # Nightly scan on a schedule (02:00 UTC).
+  schedule:
+    - cron: '0 2 * * *'
+  # Allow manual runs with a custom target.
+  workflow_dispatch:
+    inputs:
+      target-url:
+        description: 'URL to scan'
+        required: false
+        default: 'https://juice-shop-spec-building.levoai.app/'
+
+# The action posts a sticky PR comment, which needs pull-requests: write.
+# contents: read is enough for checkout. (The PR comment step fails soft if
+# these are not granted, so the scan itself still runs.)
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # Required if you use `config-file` — the levo-dast.yml must be on disk.
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Levo.ai DAST scan
+        id: scan
+        uses: levoai/actions/dast-scan@v2
+        with:
+          target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
+          # Optional — enables sending findings to the Levo platform.
+          authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
+          organization-id: ${{ secrets.LEVOAI_ORG_ID }}
+          env-id: ${{ secrets.LEVOAI_ENV_ID }}
+          scan-depth: 'smart'
+          output-format: 'json'
+          # Fail the build on critical findings; use 'none' to report only.
+          fail-on-severity: 'critical'
+          timeout: '1800'
+          # Optional: drive everything-else from a committed levo-dast.yml.
+          # config-file: 'levo-dast.yml'
+
+      # The action does not upload artifacts itself — do it in the workflow so
+      # the full report is downloadable from the run page.
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-scan-report
+          path: ${{ steps.scan.outputs.scan-report }}
+          retention-days: 7
+          if-no-files-found: warn

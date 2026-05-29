@@ -1,0 +1,43 @@
+# levo-dast.yml — ShadowNet DAST configuration.
+#
+# Commit this file to your repository and reference it from the action with
+# `config-file: levo-dast.yml`. The action mounts it into the scanner and
+# passes it as `--config`.
+#
+# IMPORTANT: keep this file free of secrets. Pass credentials/keys via the
+# action's inputs from GitHub Secrets (e.g. password: ${{ secrets.APP_PASSWORD }}),
+# NOT in this file. Dedicated action inputs and env take precedence over the
+# values below.
+#
+# Every section and key below is optional; unknown keys are rejected.
+
+target:
+  url: https://your-app.example.com
+  ignore_third_party: true
+  # exclude_domains:
+  #   - analytics.example.com
+
+crawl:
+  max_pages: 50
+  max_depth: 3
+
+scan:
+  enable_passive: true
+  enable_active: true
+  depth: smart            # smart | thorough
+  attack_strength: medium # low | medium | high | insane
+  # Per-category active testing toggles (omit to use defaults):
+  active_testing_categories:
+    sqli: true
+    xss: true
+    ssrf: true
+    idor: true
+    auth_bypass: true
+
+cve:
+  js: true
+  dom: true
+
+reporting:
+  output: json
+  fail_on: critical       # critical | high | medium | low | info

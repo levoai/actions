@@ -1,0 +1,58 @@
+# Sample workflow: run a DAST scan on every merge to main, driven by a
+# committed levo-dast.yml. Copy this into your repository at
+# .github/workflows/dast-on-merge.yml (alongside a levo-dast.yml at the repo
+# root), and add the referenced secrets under
+# Settings -> Secrets and variables -> Actions.
+name: DAST scan on merge
+
+on:
+  # A merged PR produces a push to the base branch — this fires on every merge.
+  push:
+    branches: [main]
+  # Optional: allow manual runs too.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # Required so the committed levo-dast.yml is present on the runner's disk.
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Levo.ai DAST scan
+        id: scan
+        uses: levoai/actions/dast-scan@v2
+        with:
+          # target-url is still required; it takes precedence over target.url
+          # in the YAML if both are set.
+          target-url: https://your-app.example.com
+          config-file: levo-dast.yml
+
+          # --- Secrets (from GitHub Secrets, never in the YAML) ---
+          authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
+          organization-id: ${{ secrets.LEVOAI_ORG_ID }}
+          env-id: ${{ secrets.LEVOAI_ENV_ID }}
+          # If the target needs a login:
+          auth: form
+          login-url: https://your-app.example.com/login
+          username: ${{ secrets.APP_USERNAME }}
+          password: ${{ secrets.APP_PASSWORD }}
+
+          # fail_on in the YAML also works; this input wins if both are set.
+          fail-on-severity: critical
+
+      # The action does not upload artifacts itself — do it here so the full
+      # report is downloadable from the run page.
+      - name: Upload scan report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dast-scan-report
+          path: ${{ steps.scan.outputs.scan-report }}
+          retention-days: 14
+          if-no-files-found: warn
