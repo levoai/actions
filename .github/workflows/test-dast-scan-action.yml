@@ -37,6 +37,9 @@ jobs:
         with:
           # Hyphenated workflow_dispatch inputs must use bracket form: github.event.inputs['target-url']
           target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
+          # Exercise the new config-file path with a tiny config so the scan
+          # completes fast (and so we can confirm the YAML is actually applied).
+          config-file: 'dast-scan/test/levo-dast.test.yml'
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           env-id: ${{ secrets.LEVOAI_ENV_ID }}
