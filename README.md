@@ -206,10 +206,10 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # URL of the application to scan.
     target-url: 'https://your-app.example.com'
 
-    # [OPTIONAL] Levo.ai API key. Get it from https://app.levo.ai/settings/keys
+    # [OPTIONAL] Levo API key. Get it from https://app.levo.ai/settings/keys
     authorization-key: ''
 
-    # [OPTIONAL] Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization
+    # [OPTIONAL] Levo organization ID. Get it from https://app.levo.ai/settings/organization
     organization-id: ''
 
     # [OPTIONAL] Environment ID for Levo integration

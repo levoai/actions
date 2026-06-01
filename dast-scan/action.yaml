@@ -1,6 +1,6 @@
-name: "Levo.ai DAST Scanner"
+name: "Levo DAST Scanner"
 description: "Run dynamic application security testing on your web app or API"
-author: 'Levo.ai'
+author: 'Levo'
 branding:
   icon: 'shield'
   color: 'purple'
@@ -10,17 +10,17 @@ inputs:
     description: 'URL of the application to scan'
     required: true
   authorization-key:
-    description: 'Levo.ai API key for advanced features. Get it from https://app.levo.ai/settings/keys'
+    description: 'Levo API key for advanced features. Get it from https://app.levo.ai/settings/keys'
     required: false
   organization-id:
-    description: 'Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization'
+    description: 'Levo organization ID. Get it from https://app.levo.ai/settings/organization'
     required: false
   saas-url:
-    description: 'Levo.ai SaaS base URL'
+    description: 'Levo SaaS base URL'
     required: true
     default: "https://api.levo.ai"
   satellite-url:
-    description: 'Levo.ai satellite URL for capturing traffic'
+    description: 'Levo satellite URL for capturing traffic'
     required: false
     default: 'https://satellite.levo.ai'
   env-id:
@@ -365,7 +365,7 @@ runs:
             # before the normal summary block, so write a focused message here.
             if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
               {
-                echo "## 🛡️ Levo.ai DAST scan results"
+                echo "## 🛡️ Levo DAST scan results"
                 echo ""
                 echo "> ⚠️ **Configuration error — scan did not run.**"
                 echo "> \`config-file\` not found: \`$INPUT_CONFIG_FILE\`"
@@ -637,7 +637,7 @@ runs:
             # findings table — a table of zeros would make a failure look like a
             # clean scan with no findings.
             {
-              echo "## 🛡️ Levo.ai DAST scan results"
+              echo "## 🛡️ Levo DAST scan results"
               echo ""
               echo "**Target:** \`$INPUT_TARGET_URL\`"
               echo ""
@@ -648,7 +648,7 @@ runs:
             } >> "$GITHUB_STEP_SUMMARY"
           else
             {
-              echo "## 🛡️ Levo.ai DAST scan results"
+              echo "## 🛡️ Levo DAST scan results"
               echo ""
               echo "**Target:** \`$INPUT_TARGET_URL\`  "
               echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`$INPUT_SCAN_DEPTH\`"
@@ -737,7 +737,7 @@ runs:
         BODY_FILE="$(mktemp)"
         {
           echo "$MARKER"
-          echo "## 🛡️ Levo.ai DAST scan results"
+          echo "## 🛡️ Levo DAST scan results"
           echo ""
           echo "**Target:** \`${TARGET_URL}\`"
           echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`${SCAN_DEPTH}\`"
@@ -757,7 +757,7 @@ runs:
           fi
           echo "Fail-on-severity threshold: \`${FAIL_ON}\` · scan exit code: \`${EXIT_CODE:-0}\`"
           echo ""
-          echo "<sub>Posted automatically by the Levo.ai DAST scan action.</sub>"
+          echo "<sub>Posted automatically by the Levo DAST scan action.</sub>"
         } > "$BODY_FILE"
 
         # Find an existing sticky comment to update (avoids a new comment per run).
