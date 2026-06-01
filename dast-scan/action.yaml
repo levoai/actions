@@ -1,6 +1,6 @@
-name: "Levo.ai DAST Scanner"
+name: "Levo DAST Scanner"
 description: "Run dynamic application security testing on your web app or API"
-author: 'Levo.ai'
+author: 'Levo'
 branding:
   icon: 'shield'
   color: 'purple'
@@ -10,17 +10,17 @@ inputs:
     description: 'URL of the application to scan'
     required: true
   authorization-key:
-    description: 'Levo.ai API key for advanced features. Get it from https://app.levo.ai/settings/keys'
+    description: 'Levo API key for advanced features. Get it from https://app.levo.ai/settings/keys'
     required: false
   organization-id:
-    description: 'Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization'
+    description: 'Levo organization ID. Get it from https://app.levo.ai/settings/organization'
     required: false
   saas-url:
-    description: 'Levo.ai SaaS base URL'
+    description: 'Levo SaaS base URL'
     required: true
     default: "https://api.levo.ai"
   satellite-url:
-    description: 'Levo.ai satellite URL for capturing traffic'
+    description: 'Levo satellite URL for capturing traffic'
     required: false
     default: 'https://satellite.levo.ai'
   env-id:
@@ -66,6 +66,15 @@ inputs:
     required: false
     default: 'latest'
 
+  # --- YAML config ---
+  config-file:
+    description: >-
+      Path to a levo-dast.yml config file (relative to the workspace or
+      absolute). Mounted into the container and passed as `--config`. CLI
+      inputs / env take precedence over YAML values. Note: file paths *inside*
+      the YAML that reference other repo files are not auto-mounted.
+    required: false
+
   # --- App authentication (CLI scan) ---
   auth:
     description: 'Authentication strategy (`--auth`, e.g. none, basic, bearer, form).'
@@ -87,6 +96,29 @@ inputs:
     required: false
   headers:
     description: 'One `Name: Value` header per line (`--header`, repeatable).'
+  multi-step-auth:
+    description: 'Enable DOM-driven N-step form login (`--multi-step-auth`). Off by default.'
+    required: false
+    default: 'false'
+  auth-custom-instructions:
+    description: 'Free-text login guidance for AI-guided auth (`SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS`; only used when `auth: ai`).'
+    required: false
+  auth-fields:
+    description: >-
+      Extra credential field(s) for rule-based form login, one per line
+      (`--auth-field`, repeatable). Format: `[<prefix>=]<locator>:<value>`
+      (prefix: label|placeholder|name|id|css, default label), e.g. `Access Code:9876`.
+      Note: like `cookies`/`headers`, values are passed on the scanner command
+      line (the CLI has no env equivalent for this option), so avoid embedding
+      high-value secrets here.
+    required: false
+  wait-for-mfa:
+    description: 'Pause after login to allow manual MFA/verification (`--wait-for-mfa`). Off by default.'
+    required: false
+    default: 'false'
+  mfa-static-code:
+    description: 'Static/hard-coded MFA code for test/demo apps (`SHADOWNET_MFA_STATIC_CODE`). Falls back to wait-for-mfa if the OTP field is not detected.'
+    required: false
 
   # --- Scan phases ---
   enable-passive:
@@ -248,6 +280,12 @@ runs:
         INPUT_LOGIN_URL: ${{ inputs.login-url }}
         INPUT_COOKIES: ${{ inputs.cookies }}
         INPUT_HEADERS: ${{ inputs.headers }}
+        INPUT_CONFIG_FILE: ${{ inputs.config-file }}
+        INPUT_MULTI_STEP_AUTH: ${{ inputs.multi-step-auth }}
+        INPUT_AUTH_FIELDS: ${{ inputs.auth-fields }}
+        INPUT_WAIT_FOR_MFA: ${{ inputs.wait-for-mfa }}
+        SHADOWNET_MFA_STATIC_CODE: ${{ inputs.mfa-static-code }}
+        SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS: ${{ inputs.auth-custom-instructions }}
         INPUT_ENABLE_PASSIVE: ${{ inputs.enable-passive }}
         INPUT_ENABLE_ACTIVE: ${{ inputs.enable-active }}
         INPUT_DISABLE_CATEGORIES: ${{ inputs.disable-categories }}
@@ -314,6 +352,49 @@ runs:
         # Optional env passthroughs (omit when empty so CLI defaults apply)
         OPT_ENV=()
         [ -n "${HTTP_METHODS:-}" ] && OPT_ENV+=(-e HTTP_METHODS)
+        [ -n "${SHADOWNET_MFA_STATIC_CODE:-}" ] && OPT_ENV+=(-e SHADOWNET_MFA_STATIC_CODE)
+        [ -n "${SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS:-}" ] && OPT_ENV+=(-e SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS)
+
+        # Optional YAML config: mount the file read-only and pass --config.
+        CONFIG_MOUNT=()
+        CONFIG_CLI=()
+        if [ -n "${INPUT_CONFIG_FILE:-}" ]; then
+          if [ ! -f "$INPUT_CONFIG_FILE" ]; then
+            echo "::error::config-file not found: $INPUT_CONFIG_FILE"
+            # Surface the setup failure on the run Summary page too — this exits
+            # before the normal summary block, so write a focused message here.
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "## 🛡️ Levo DAST scan results"
+                echo ""
+                echo "> ⚠️ **Configuration error — scan did not run.**"
+                echo "> \`config-file\` not found: \`$INPUT_CONFIG_FILE\`"
+                echo "> Ensure the repo is checked out (\`actions/checkout\`) and the path is correct."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            # Emit the full default output set (consistent with the no-report
+            # branch) so all action outputs are defined on this early exit.
+            {
+              echo "report-path="
+              echo "findings-count=0"
+              echo "critical-findings=0"
+              echo "high-findings=0"
+              echo "medium-findings=0"
+              echo "low-findings=0"
+              echo "info-findings=0"
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "{}"
+              echo "DAST_SEVERITY_JSON"
+              echo "scan-id=unknown"
+              echo "exit-code=1"
+            } >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          CONFIG_HOST_PATH="$(cd "$(dirname "$INPUT_CONFIG_FILE")" && pwd)/$(basename "$INPUT_CONFIG_FILE")"
+          CONFIG_MOUNT=(-v "$CONFIG_HOST_PATH:/app/levo-dast.yml:ro")
+          CONFIG_CLI=(--config /app/levo-dast.yml)
+          echo "Using YAML config: $INPUT_CONFIG_FILE"
+        fi
 
         DOCKER_ARGS=(
           docker run --rm
@@ -321,6 +402,7 @@ runs:
           -e HOME=/tmp/levo-home
           -v "$LEVO_HOME:/tmp/levo-home"
           -v "$REPORTS_DIR:/app/reports"
+          "${CONFIG_MOUNT[@]}"
           -e OPENAI_API_KEY
           -e ANTHROPIC_API_KEY
           -e LEVOAI_AUTH_KEY
@@ -335,6 +417,7 @@ runs:
           "${OPT_ENV[@]}"
           "$LEVO_IMAGE"
           scan "$INPUT_TARGET_URL"
+          "${CONFIG_CLI[@]}"
           --scan-depth "$INPUT_SCAN_DEPTH"
           --output "$INPUT_OUTPUT_FORMAT"
           --timeout "$SCAN_TIMEOUT"
@@ -345,6 +428,17 @@ runs:
         # Optional app auth
         [ -n "$INPUT_AUTH" ] && DOCKER_ARGS+=(--auth "$INPUT_AUTH")
         [ -n "$INPUT_LOGIN_URL" ] && DOCKER_ARGS+=(--login-url "$INPUT_LOGIN_URL")
+        [ "$INPUT_MULTI_STEP_AUTH" = "true" ] && DOCKER_ARGS+=(--multi-step-auth)
+        [ "$INPUT_WAIT_FOR_MFA" = "true" ] && DOCKER_ARGS+=(--wait-for-mfa)
+        # auth-custom-instructions and mfa-static-code are passed via env
+        # (SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS / SHADOWNET_MFA_STATIC_CODE).
+
+        while IFS= read -r line || [ -n "$line" ]; do
+          line="${line#"${line%%[![:space:]]*}"}"
+          line="${line%"${line##*[![:space:]]}"}"
+          [ -z "$line" ] && continue
+          DOCKER_ARGS+=(--auth-field "$line")
+        done <<< "${INPUT_AUTH_FIELDS:-}"
 
         while IFS= read -r line || [ -n "$line" ]; do
           line="${line#"${line%%[![:space:]]*}"}"
@@ -536,6 +630,47 @@ runs:
 
         echo "exit-code=$SCAN_EXIT_CODE" >> "$GITHUB_OUTPUT"
 
+        # --- Job summary (rendered on the workflow run's Summary page) ---
+        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+          if [ ! -f "$REPORT_FILE" ]; then
+            # No report was produced (scan/setup failure). Do NOT render a
+            # findings table — a table of zeros would make a failure look like a
+            # clean scan with no findings.
+            {
+              echo "## 🛡️ Levo DAST scan results"
+              echo ""
+              echo "**Target:** \`$INPUT_TARGET_URL\`"
+              echo ""
+              echo "> ⚠️ **No report was produced — scan did not complete.** Counts are unavailable."
+              echo "> Check the job logs (credentials, env-id, target URL, config-file, network)."
+              echo ""
+              echo "_Scan exit code: \`$SCAN_EXIT_CODE\`._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## 🛡️ Levo DAST scan results"
+              echo ""
+              echo "**Target:** \`$INPUT_TARGET_URL\`  "
+              echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`$INPUT_SCAN_DEPTH\`"
+              echo ""
+              echo "| Severity | Count |"
+              echo "| --- | --- |"
+              echo "| 🔴 Critical | ${CRITICAL_COUNT:-0} |"
+              echo "| 🟠 High | ${HIGH_COUNT:-0} |"
+              echo "| 🟡 Medium | ${MEDIUM_COUNT:-0} |"
+              echo "| 🔵 Low | ${LOW_COUNT:-0} |"
+              echo "| ⚪ Informational | ${INFO_COUNT:-0} |"
+              echo "| **Total** | **${FINDINGS_COUNT:-0}** |"
+              echo ""
+              if [ "$INPUT_OUTPUT_FORMAT" = "sarif" ]; then
+                echo "_SARIF output: per-severity counts are not extracted from SARIF — use \`output-format: json\` for a populated table._"
+                echo ""
+              fi
+              echo "_Fail-on-severity threshold: \`$INPUT_FAIL_ON_SEVERITY\` · scan exit code: \`$SCAN_EXIT_CODE\`._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+        fi
+
         # Apply fail-on-severity logic
         if [ "$INPUT_FAIL_ON_SEVERITY" != "none" ]; then
           case "$INPUT_FAIL_ON_SEVERITY" in
@@ -561,3 +696,91 @@ runs:
         fi
 
         exit "$SCAN_EXIT_CODE"
+
+    - name: Post findings summary as PR comment
+      # Only when a report was actually produced — skips early-exit cases
+      # (e.g. missing config-file, login/scan failure) where counts are unset,
+      # so we never post a misleading "0 findings" comment.
+      if: ${{ always() && github.event_name == 'pull_request' && steps.run-dast-scan.outputs.report-path != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        TARGET_URL: ${{ inputs.target-url }}
+        SCAN_DEPTH: ${{ inputs.scan-depth }}
+        FAIL_ON: ${{ inputs.fail-on-severity }}
+        OUTPUT_FORMAT: ${{ inputs.output-format }}
+        SCAN_ID: ${{ steps.run-dast-scan.outputs.scan-id }}
+        TOTAL: ${{ steps.run-dast-scan.outputs.findings-count }}
+        CRITICAL: ${{ steps.run-dast-scan.outputs.critical-findings }}
+        HIGH: ${{ steps.run-dast-scan.outputs.high-findings }}
+        MEDIUM: ${{ steps.run-dast-scan.outputs.medium-findings }}
+        LOW: ${{ steps.run-dast-scan.outputs.low-findings }}
+        INFO: ${{ steps.run-dast-scan.outputs.info-findings }}
+        EXIT_CODE: ${{ steps.run-dast-scan.outputs.exit-code }}
+      run: |
+        set +e
+
+        if [ -z "${GH_TOKEN:-}" ] || [ -z "${PR_NUMBER:-}" ]; then
+          echo "No GitHub token or PR number available; skipping PR comment."
+          exit 0
+        fi
+        if ! command -v gh >/dev/null 2>&1; then
+          echo "gh CLI not available on runner; skipping PR comment."
+          exit 0
+        fi
+
+        # Hidden marker keeps a single sticky comment that we update in place.
+        MARKER="<!-- levoai-dast-scan -->"
+
+        BODY_FILE="$(mktemp)"
+        {
+          echo "$MARKER"
+          echo "## 🛡️ Levo DAST scan results"
+          echo ""
+          echo "**Target:** \`${TARGET_URL}\`"
+          echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`${SCAN_DEPTH}\`"
+          echo ""
+          echo "| Severity | Count |"
+          echo "| --- | --- |"
+          echo "| 🔴 Critical | ${CRITICAL:-0} |"
+          echo "| 🟠 High | ${HIGH:-0} |"
+          echo "| 🟡 Medium | ${MEDIUM:-0} |"
+          echo "| 🔵 Low | ${LOW:-0} |"
+          echo "| ⚪ Informational | ${INFO:-0} |"
+          echo "| **Total** | **${TOTAL:-0}** |"
+          echo ""
+          if [ "$OUTPUT_FORMAT" = "sarif" ]; then
+            echo "> ℹ️ SARIF output: per-severity counts are not extracted. Use \`output-format: json\` for a populated table."
+            echo ""
+          fi
+          echo "Fail-on-severity threshold: \`${FAIL_ON}\` · scan exit code: \`${EXIT_CODE:-0}\`"
+          echo ""
+          echo "<sub>Posted automatically by the Levo DAST scan action.</sub>"
+        } > "$BODY_FILE"
+
+        # Find an existing sticky comment to update (avoids a new comment per run).
+        # --paginate runs the jq filter per page, so filter to the first numeric id.
+        EXISTING_ID=$(gh api "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" --paginate \
+          --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" 2>/dev/null \
+          | grep -E '^[0-9]+$' | head -n1)
+
+        if [ -n "$EXISTING_ID" ]; then
+          if gh api -X PATCH "repos/${GH_REPO}/issues/comments/${EXISTING_ID}" \
+               -F "body=@${BODY_FILE}" >/dev/null 2>&1; then
+            echo "Updated existing PR comment (${EXISTING_ID})."
+          else
+            echo "::warning::Could not update PR comment — the workflow token likely lacks 'pull-requests: write'. Skipping."
+          fi
+        else
+          if gh api -X POST "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+               -F "body=@${BODY_FILE}" >/dev/null 2>&1; then
+            echo "Posted PR comment."
+          else
+            echo "::warning::Could not post PR comment — the workflow token likely lacks 'pull-requests: write'. Skipping."
+          fi
+        fi
+
+        rm -f "$BODY_FILE"
+        exit 0

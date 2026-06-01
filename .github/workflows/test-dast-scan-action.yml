@@ -2,6 +2,9 @@ name: Test DAST Scan Action
 
 permissions:
   contents: read
+  # Granted so the action's sticky PR-comment path (gh api POST/PATCH) is
+  # actually exercised by this test, not just the fail-soft branch.
+  pull-requests: write
 
 on:
   pull_request:
@@ -37,10 +40,15 @@ jobs:
         with:
           # Hyphenated workflow_dispatch inputs must use bracket form: github.event.inputs['target-url']
           target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
+          # Exercise the new config-file path with a tiny config so the scan
+          # completes fast (and so we can confirm the YAML is actually applied).
+          config-file: 'dast-scan/test/levo-dast.test.yml'
           authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
           organization-id: ${{ secrets.LEVOAI_ORG_ID }}
           env-id: ${{ secrets.LEVOAI_ENV_ID }}
           saas-url: 'https://api.dev.levo.ai'
+          # Satellite must match the dev base URL, not the prod default.
+          satellite-url: 'https://satellite.dev.levo.ai'
           fail-on-severity: 'none'
           send-issues: 'true'
           scan-depth: 'smart'
@@ -90,6 +98,31 @@ jobs:
           fi
           echo ""
           echo "=================================================================================="
+      - name: Assert config-file is honored
+        # Verify a config-file value actually reaches the engine. We can't use
+        # the juice-shop scan's report for this: that SPA never settles, so its
+        # crawl times out on page 1 regardless of config, leaving pages/depth
+        # indistinguishable. Instead, run a fast bounded crawl of a static target
+        # and check the crawler's startup log, which prints the effective
+        # max_pages. The test config sets max_pages=1, so a working config-file
+        # shows "Max pages: 1"; if --config were dropped it would show the
+        # default "Max pages: 100".
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/levo-verify"
+          LOG=$(docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/levo-home -v "$RUNNER_TEMP/levo-verify:/tmp/levo-home" \
+            -v "$PWD/dast-scan/test/levo-dast.test.yml:/app/levo-dast.yml:ro" \
+            levoai/levoai-shadownet:latest \
+            scan https://example.com --config /app/levo-dast.yml --skip-auth \
+            --scan-depth thorough --crawl-only --non-interactive --timeout 60 2>&1 || true)
+          if echo "$LOG" | grep -qE "Max pages: 1\b"; then
+            echo "✓ config-file honored — crawler reports the YAML's max_pages=1 (not the default 100)."
+          else
+            echo "::error::config-file NOT honored — crawler did not report max_pages=1; --config may be dropped or the engine regressed."
+            echo "$LOG" | grep -iE "max pages|max_pages" | head
+            exit 1
+          fi
       - name: Upload scan report
         uses: actions/upload-artifact@v7
         if: always()

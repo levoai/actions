@@ -201,15 +201,15 @@ This action will require Docker to be available on the runner. Providing a Levo 
 
 <!-- start usage -->
 ```yaml
-- uses: levoai/actions/dast-scan@v1
+- uses: levoai/actions/dast-scan@v2
   with:
     # URL of the application to scan.
     target-url: 'https://your-app.example.com'
 
-    # [OPTIONAL] Levo.ai API key. Get it from https://app.levo.ai/settings/keys
+    # [OPTIONAL] Levo API key. Get it from https://app.levo.ai/settings/keys
     authorization-key: ''
 
-    # [OPTIONAL] Levo.ai organization ID. Get it from https://app.levo.ai/settings/organization
+    # [OPTIONAL] Levo organization ID. Get it from https://app.levo.ai/settings/organization
     organization-id: ''
 
     # [OPTIONAL] Environment ID for Levo integration
@@ -245,6 +245,50 @@ This action will require Docker to be available on the runner. Providing a Levo 
 <!-- end usage -->
 
 The action wraps common `shadownet scan` options (auth, cookies, headers, crawl limits, AI, CVE, chatbot, domain filters, etc.). Timeout is passed as `--timeout` via the `timeout` input. See [`dast-scan/action.yaml`](dast-scan/action.yaml) for all inputs. Use `extra-args` for any other CLI flags.
+
+### YAML config & authentication
+
+For everything not exposed as a dedicated input, point `config-file` at a [`levo-dast.yml`](dast-scan/examples/levo-dast.yml) in your repo — it is mounted into the scanner and passed as `--config`. Dedicated inputs / env take precedence over YAML values. (File paths *inside* the YAML that reference other repo files are not auto-mounted.)
+
+> **Always-overridden keys:** the action *unconditionally* passes its `scan-depth`, `output-format`, and `timeout` inputs (which have defaults), so the corresponding YAML keys — `scan.depth`, `reporting.output`, `scan.timeout` — are always clobbered and cannot be driven from `config-file`. Set those via the matching action inputs. (Keys like `crawl.max_pages`/`max_depth` are passed only when their input is set, so they *do* work from YAML.)
+>
+> **Exception — gating:** `fail-on-severity` is enforced by the action *after* the scan, so it does **not** override `reporting.fail_on` set in `levo-dast.yml`. The scanner exits non-zero on a YAML `fail_on` before the action's gate runs, so `fail-on-severity: none` cannot suppress it. Configure gating in one place, not both.
+
+```yaml
+with:
+  target-url: 'https://your-app.example.com'
+  config-file: 'levo-dast.yml'
+```
+
+Advanced authentication inputs:
+
+| Input | Maps to | Notes |
+| --- | --- | --- |
+| `multi-step-auth` | `--multi-step-auth` | DOM-driven N-step form login (username/password → MFA → …). Off by default. |
+| `auth-fields` | `--auth-field` (repeatable) | One `[<prefix>=]<locator>:<value>` per line for apps with 3+ credential inputs. |
+| `auth-custom-instructions` | `SHADOWNET_AUTH_CUSTOM_INSTRUCTIONS` | Free-text login guidance for AI-guided auth (`auth: ai`). |
+| `wait-for-mfa` | `--wait-for-mfa` | Pause after login for manual MFA/verification. |
+| `mfa-static-code` | `SHADOWNET_MFA_STATIC_CODE` | Static OTP for test/demo apps; falls back to `wait-for-mfa` if the OTP field isn't found. |
+
+### CI integration
+
+- **Job summary** — every run writes a findings table to the workflow run's **Summary** page (`$GITHUB_STEP_SUMMARY`), so the result is visible without opening the logs.
+- **PR comment** — on `pull_request` events the action posts (and updates in place on re-runs) a sticky comment with the findings summary. This requires the workflow to grant `pull-requests: write`:
+
+  ```yaml
+  permissions:
+    contents: read
+    pull-requests: write
+  ```
+
+  The PR-comment step is **fail-soft**: if the token lacks permission, it logs a warning and the scan still completes normally.
+- **Report artifact** — the action does not upload artifacts itself; upload `${{ steps.<id>.outputs.scan-report }}` from your workflow (see the sample below) to make the full report downloadable from the run page.
+
+Copy-paste-ready examples live in [`dast-scan/examples/`](dast-scan/examples/):
+
+- [`dast-scan.yml`](dast-scan/examples/dast-scan.yml) — PR + nightly schedule + manual dispatch, with artifact upload.
+- [`dast-on-merge.yml`](dast-scan/examples/dast-on-merge.yml) — scan on every merge to `main`, driven by a committed `levo-dast.yml` + secrets.
+- [`levo-dast.yml`](dast-scan/examples/levo-dast.yml) — starter YAML config to commit alongside it.
 
 ### Output
 

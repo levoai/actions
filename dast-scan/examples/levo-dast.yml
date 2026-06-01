@@ -1,0 +1,48 @@
+# levo-dast.yml — ShadowNet DAST configuration.
+#
+# Commit this file to your repository and reference it from the action with
+# `config-file: levo-dast.yml`. The action mounts it into the scanner and
+# passes it as `--config`.
+#
+# IMPORTANT: keep this file free of secrets. Pass credentials/keys via the
+# action's inputs from GitHub Secrets (e.g. password: ${{ secrets.APP_PASSWORD }}),
+# NOT in this file. Dedicated action inputs and env take precedence over the
+# values below.
+#
+# Every section and key below is optional; unknown keys are rejected.
+
+target:
+  url: https://your-app.example.com
+  ignore_third_party: true
+  # exclude_domains:
+  #   - analytics.example.com
+
+crawl:
+  max_pages: 50
+  max_depth: 3
+
+scan:
+  enable_passive: true
+  enable_active: true
+  attack_strength: medium # low | medium | high | insane
+  # NOTE: `scan.depth` is intentionally omitted — the action always passes its
+  # `scan-depth` input (default `smart`), which overrides this key. Set scan
+  # depth via the action's `scan-depth` input instead.
+  #
+  # Per-category active testing: this map only *disables* categories you set to
+  # `false`. An all-`true` map is a no-op (it disables nothing). Example —
+  # disable a couple of categories:
+  # active_testing_categories:
+  #   business_logic: false
+  #   file_upload: false
+
+cve:
+  js: true
+  dom: true
+
+# Reporting is intentionally NOT configured here:
+#   • `output` — the action always passes its `output-format` input (default
+#     `json`), which overrides `reporting.output`. Use the input instead.
+#   • `fail_on` — prefer the action's `fail-on-severity` input. A YAML `fail_on`
+#     makes the scanner exit non-zero before the action's gate runs, so the
+#     input cannot override it. Only set it if you run the CLI directly.

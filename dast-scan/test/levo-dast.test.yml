@@ -1,0 +1,23 @@
+# Test config for test-dast-scan-action.yml — intentionally tiny so the scan
+# completes fast and deterministically (the full juice-shop SPA crawl times out
+# in smart mode). Distinctive limits (max_pages=1, max_depth=0) also let us
+# confirm the config-file path is actually applied: the scan log should show
+# "Smart mode crawl limits: max_pages=1" rather than the default 50.
+target:
+  url: https://juice-shop-spec-building.levoai.app/
+  ignore_third_party: true
+
+crawl:
+  type: standard
+  max_pages: 1
+  max_depth: 0
+  max_clicks_per_page: 0
+  ai_form_filling: false
+
+scan:
+  enable_passive: true
+  enable_active: false
+  enable_ai: false
+
+reporting:
+  output: json
