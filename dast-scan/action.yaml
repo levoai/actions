@@ -372,8 +372,22 @@ runs:
                 echo "> Ensure the repo is checked out (\`actions/checkout\`) and the path is correct."
               } >> "$GITHUB_STEP_SUMMARY"
             fi
-            echo "report-path=" >> "$GITHUB_OUTPUT"
-            echo "exit-code=1" >> "$GITHUB_OUTPUT"
+            # Emit the full default output set (consistent with the no-report
+            # branch) so all action outputs are defined on this early exit.
+            {
+              echo "report-path="
+              echo "findings-count=0"
+              echo "critical-findings=0"
+              echo "high-findings=0"
+              echo "medium-findings=0"
+              echo "low-findings=0"
+              echo "info-findings=0"
+              echo "findings-by-severity<<DAST_SEVERITY_JSON"
+              echo "{}"
+              echo "DAST_SEVERITY_JSON"
+              echo "scan-id=unknown"
+              echo "exit-code=1"
+            } >> "$GITHUB_OUTPUT"
             exit 1
           fi
           CONFIG_HOST_PATH="$(cd "$(dirname "$INPUT_CONFIG_FILE")" && pwd)/$(basename "$INPUT_CONFIG_FILE")"

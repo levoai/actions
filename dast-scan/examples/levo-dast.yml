@@ -24,24 +24,25 @@ crawl:
 scan:
   enable_passive: true
   enable_active: true
-  depth: smart            # smart | thorough
   attack_strength: medium # low | medium | high | insane
-  # Per-category active testing toggles (omit to use defaults):
-  active_testing_categories:
-    sqli: true
-    xss: true
-    ssrf: true
-    idor: true
-    auth_bypass: true
+  # NOTE: `scan.depth` is intentionally omitted — the action always passes its
+  # `scan-depth` input (default `smart`), which overrides this key. Set scan
+  # depth via the action's `scan-depth` input instead.
+  #
+  # Per-category active testing: this map only *disables* categories you set to
+  # `false`. An all-`true` map is a no-op (it disables nothing). Example —
+  # disable a couple of categories:
+  # active_testing_categories:
+  #   business_logic: false
+  #   file_upload: false
 
 cve:
   js: true
   dom: true
 
-reporting:
-  output: json
-  # Gating: prefer the action's `fail-on-severity` input over setting `fail_on`
-  # here. A YAML `fail_on` makes the scanner exit non-zero on matching findings
-  # before the action's gate runs, so the input cannot override it. Uncomment
-  # only if this config is used outside the action (e.g. the CLI directly).
-  # fail_on: critical     # critical | high | medium | low | info
+# Reporting is intentionally NOT configured here:
+#   • `output` — the action always passes its `output-format` input (default
+#     `json`), which overrides `reporting.output`. Use the input instead.
+#   • `fail_on` — prefer the action's `fail-on-severity` input. A YAML `fail_on`
+#     makes the scanner exit non-zero before the action's gate runs, so the
+#     input cannot override it. Only set it if you run the CLI directly.

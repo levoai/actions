@@ -2,6 +2,9 @@ name: Test DAST Scan Action
 
 permissions:
   contents: read
+  # Granted so the action's sticky PR-comment path (gh api POST/PATCH) is
+  # actually exercised by this test, not just the fail-soft branch.
+  pull-requests: write
 
 on:
   pull_request:
@@ -95,6 +98,29 @@ jobs:
           fi
           echo ""
           echo "=================================================================================="
+      - name: Assert config-file was applied
+        # Proves the YAML actually drove the scan (guards against --config being
+        # silently dropped). The test config (dast-scan/test/levo-dast.test.yml)
+        # sets max_pages=1, max_depth=0, passive-only — so if config-file were
+        # ignored, the juice-shop crawl would run at engine defaults (~50 pages)
+        # and time out. These checks then fail.
+        if: ${{ steps.test-scan.outputs.scan-report != '' }}
+        env:
+          DAST_REPORT: ${{ steps.test-scan.outputs.scan-report }}
+        run: |
+          set -e
+          STATUS=$(jq -r '.status // "unknown"' "$DAST_REPORT")
+          PAGES=$(jq -r '.metrics.pages_crawled // -1' "$DAST_REPORT")
+          echo "status=$STATUS  pages_crawled=$PAGES  (expected: completed, <=3 from config max_pages=1)"
+          if [ "$STATUS" != "completed" ]; then
+            echo "::error::Scan status is '$STATUS', not 'completed' — config-file (max_pages=1) likely ignored, scan ran at defaults and timed out."
+            exit 1
+          fi
+          if [ "$PAGES" -lt 0 ] || [ "$PAGES" -gt 3 ]; then
+            echo "::error::pages_crawled=$PAGES exceeds the config max_pages=1 limit — config-file was not applied."
+            exit 1
+          fi
+          echo "✓ config-file applied: scan completed and crawl was constrained to $PAGES page(s)."
       - name: Upload scan report
         uses: actions/upload-artifact@v7
         if: always()
