@@ -605,27 +605,43 @@ runs:
 
         # --- Job summary (rendered on the workflow run's Summary page) ---
         if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-          {
-            echo "## 🛡️ Levo.ai DAST scan results"
-            echo ""
-            echo "**Target:** \`$INPUT_TARGET_URL\`  "
-            echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`$INPUT_SCAN_DEPTH\`"
-            echo ""
-            echo "| Severity | Count |"
-            echo "| --- | --- |"
-            echo "| 🔴 Critical | ${CRITICAL_COUNT:-0} |"
-            echo "| 🟠 High | ${HIGH_COUNT:-0} |"
-            echo "| 🟡 Medium | ${MEDIUM_COUNT:-0} |"
-            echo "| 🔵 Low | ${LOW_COUNT:-0} |"
-            echo "| ⚪ Informational | ${INFO_COUNT:-0} |"
-            echo "| **Total** | **${FINDINGS_COUNT:-0}** |"
-            echo ""
-            if [ "$INPUT_OUTPUT_FORMAT" = "sarif" ]; then
-              echo "_SARIF output: per-severity counts are not extracted from SARIF — use \`output-format: json\` for a populated table._"
+          if [ ! -f "$REPORT_FILE" ]; then
+            # No report was produced (scan/setup failure). Do NOT render a
+            # findings table — a table of zeros would make a failure look like a
+            # clean scan with no findings.
+            {
+              echo "## 🛡️ Levo.ai DAST scan results"
               echo ""
-            fi
-            echo "_Fail-on-severity threshold: \`$INPUT_FAIL_ON_SEVERITY\` · scan exit code: \`$SCAN_EXIT_CODE\`._"
-          } >> "$GITHUB_STEP_SUMMARY"
+              echo "**Target:** \`$INPUT_TARGET_URL\`"
+              echo ""
+              echo "> ⚠️ **No report was produced — scan did not complete.** Counts are unavailable."
+              echo "> Check the job logs (credentials, env-id, target URL, config-file, network)."
+              echo ""
+              echo "_Scan exit code: \`$SCAN_EXIT_CODE\`._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## 🛡️ Levo.ai DAST scan results"
+              echo ""
+              echo "**Target:** \`$INPUT_TARGET_URL\`  "
+              echo "**Scan ID:** \`${SCAN_ID:-unknown}\` · **Scan depth:** \`$INPUT_SCAN_DEPTH\`"
+              echo ""
+              echo "| Severity | Count |"
+              echo "| --- | --- |"
+              echo "| 🔴 Critical | ${CRITICAL_COUNT:-0} |"
+              echo "| 🟠 High | ${HIGH_COUNT:-0} |"
+              echo "| 🟡 Medium | ${MEDIUM_COUNT:-0} |"
+              echo "| 🔵 Low | ${LOW_COUNT:-0} |"
+              echo "| ⚪ Informational | ${INFO_COUNT:-0} |"
+              echo "| **Total** | **${FINDINGS_COUNT:-0}** |"
+              echo ""
+              if [ "$INPUT_OUTPUT_FORMAT" = "sarif" ]; then
+                echo "_SARIF output: per-severity counts are not extracted from SARIF — use \`output-format: json\` for a populated table._"
+                echo ""
+              fi
+              echo "_Fail-on-severity threshold: \`$INPUT_FAIL_ON_SEVERITY\` · scan exit code: \`$SCAN_EXIT_CODE\`._"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
         fi
 
         # Apply fail-on-severity logic

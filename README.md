@@ -248,7 +248,9 @@ The action wraps common `shadownet scan` options (auth, cookies, headers, crawl 
 
 ### YAML config & authentication
 
-For everything not exposed as a dedicated input, point `config-file` at a [`levo-dast.yml`](dast-scan/action.yaml) in your repo — it is mounted into the scanner and passed as `--config`. Dedicated inputs / env take precedence over YAML values. (File paths *inside* the YAML that reference other repo files are not auto-mounted.)
+For everything not exposed as a dedicated input, point `config-file` at a [`levo-dast.yml`](dast-scan/examples/levo-dast.yml) in your repo — it is mounted into the scanner and passed as `--config`. Dedicated inputs / env take precedence over YAML values. (File paths *inside* the YAML that reference other repo files are not auto-mounted.)
+
+> **Exception — gating:** `fail-on-severity` is enforced by the action *after* the scan, so it does **not** override `reporting.fail_on` set in `levo-dast.yml`. The scanner exits non-zero on a YAML `fail_on` before the action's gate runs, so `fail-on-severity: none` cannot suppress it. Configure gating in one place, not both.
 
 ```yaml
 with:

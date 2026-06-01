@@ -40,4 +40,8 @@ cve:
 
 reporting:
   output: json
-  fail_on: critical       # critical | high | medium | low | info
+  # Gating: prefer the action's `fail-on-severity` input over setting `fail_on`
+  # here. A YAML `fail_on` makes the scanner exit non-zero on matching findings
+  # before the action's gate runs, so the input cannot override it. Uncomment
+  # only if this config is used outside the action (e.g. the CLI directly).
+  # fail_on: critical     # critical | high | medium | low | info

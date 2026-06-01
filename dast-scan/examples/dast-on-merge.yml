@@ -43,7 +43,11 @@ jobs:
           username: ${{ secrets.APP_USERNAME }}
           password: ${{ secrets.APP_PASSWORD }}
 
-          # fail_on in the YAML also works; this input wins if both are set.
+          # Gating. NOTE: this input controls the action's own post-scan gate.
+          # It does NOT override `reporting.fail_on` set in levo-dast.yml — the
+          # scanner exits non-zero on that before the action's gate runs, so a
+          # YAML `fail_on` cannot be suppressed by `fail-on-severity: none`.
+          # Pick one place to configure gating; don't set both.
           fail-on-severity: critical
 
       # The action does not upload artifacts itself — do it here so the full
