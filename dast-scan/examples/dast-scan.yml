@@ -53,7 +53,9 @@ jobs:
       # The action does not upload artifacts itself — do it in the workflow so
       # the full report is downloadable from the run page.
       - name: Upload scan report
-        if: always()
+        # Only upload when a report was actually produced (a setup/scan failure
+        # leaves scan-report empty, which would otherwise fail upload-artifact).
+        if: always() && steps.scan.outputs.scan-report != ''
         uses: actions/upload-artifact@v4
         with:
           name: dast-scan-report
