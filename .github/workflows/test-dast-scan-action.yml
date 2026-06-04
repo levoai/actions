@@ -8,6 +8,7 @@ permissions:
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - 'dast-scan/**'
       - '.github/workflows/test-dast-scan-action.yml'
@@ -26,6 +27,7 @@ on:
 
 jobs:
   run-dast-scan:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     environment: staging
     timeout-minutes: 60
     runs-on: ubuntu-latest
