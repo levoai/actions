@@ -1,0 +1,39 @@
+name: "Release Note Validator"
+description: |
+  Enforce the `release-note:` convention on pull requests.
+  Auto-fills `release-note: NONE` for cleanup-style PRs (chore/refactor/test/docs/ci/build prefixes),
+  then verifies that the PR description contains a line starting with `release-note:`.
+
+  At release time, a separate aggregator reads these lines from every merged PR between
+  two release tags to generate RELEASE_NOTES.md (all entries) and UPGRADE_NOTES.md (BREAKING entries).
+
+inputs:
+  pr-number:
+    description: Pull request number to validate.
+    required: true
+  pr-title:
+    description: "Pull request title. Used to decide whether to auto-fill `release-note: NONE`."
+    required: true
+  github-token:
+    description: GitHub token used to read and patch PR data. Caller's GITHUB_TOKEN works.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: "Auto-add release-note: for cleanup PRs"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR_NUM: ${{ inputs.pr-number }}
+        PR_TITLE: ${{ inputs.pr-title }}
+      run: ${{ github.action_path }}/scripts/autofill.sh
+
+    - name: "Verify release-note: line exists"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR_NUM: ${{ inputs.pr-number }}
+      run: ${{ github.action_path }}/scripts/check.sh
