@@ -29,6 +29,10 @@ inputs:
     description: 'Levo Code Scanner Docker image (e.g. `levoai/code-scanner:latest`).'
     required: false
     default: 'levoai/code-scanner:latest'
+  scan-timeout:
+    description: 'Wall-clock limit (seconds) for the analysis phase. If the scan exceeds it, it is aborted with a message to re-run against a smaller `dir`, and the step fails. Mirrors the scanner default of 1 hour. Set to 0 (or negative) to disable.'
+    required: false
+    default: '3600'
 runs:
   using: 'composite'
   steps:
@@ -37,10 +41,30 @@ runs:
         echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
 
+        SCAN_TIMEOUT='${{ inputs.scan-timeout }}'
+        echo "Scan timeout: ${SCAN_TIMEOUT}s"
+
+        # Outer hard backstop. The scanner enforces its own in-container
+        # wall-clock guard (--scan-timeout), but we ALSO wrap `docker run` in
+        # `timeout` a few minutes past the budget so the job can never run away
+        # even if that guard regresses (the incident this guards against was a
+        # 4-hour hang). `docker run` forwards SIGTERM to the container, and
+        # --kill-after escalates to SIGKILL. Disabled when the timeout is <= 0.
+        TIMEOUT_WRAPPER=()
+        if [ "$SCAN_TIMEOUT" -gt 0 ] 2>/dev/null; then
+          BACKSTOP_SECONDS=$(( SCAN_TIMEOUT + 300 ))
+          TIMEOUT_WRAPPER=(timeout --signal=SIGTERM --kill-after=30s "${BACKSTOP_SECONDS}s")
+        fi
+
         set +e
-        OUTPUT=$(docker run --rm --name levo-code-scanner \
+        # The timeout is passed via the LEVO_SCAN_TIMEOUT env var rather than the
+        # --scan-timeout flag: an env var is ignored by older scanner images
+        # that predate the timeout feature (no regression), while newer images
+        # honor it. The outer `timeout` backstop above hard-caps either way.
+        OUTPUT=$("${TIMEOUT_WRAPPER[@]}" docker run --rm --name levo-code-scanner \
           --user "$(id -u):$(id -g)" \
           -e LEVO_BASE_URL=${{ inputs.saas-url }} \
+          -e LEVO_SCAN_TIMEOUT="$SCAN_TIMEOUT" \
           -e TERM=xterm-256color \
           -v "$PWD":/workspace:rw \
           ${{ inputs.scanner-docker-image }} \
@@ -53,9 +77,19 @@ runs:
         EXIT_CODE=$?
         echo "$OUTPUT"
 
+        # The container can outlive a killed `docker run` client; make sure it's gone.
+        docker rm -f levo-code-scanner >/dev/null 2>&1 || true
+
         if [ $EXIT_CODE -eq 0 ]; then
           echo "Scan succeeded."
           echo "scan-success=true" >> $GITHUB_ENV
+        elif [ $EXIT_CODE -eq 124 ] || [ $EXIT_CODE -eq 137 ]; then
+          # 124 = timed out (scanner's in-container guard, or the backstop's
+          # SIGTERM). 137 = force-killed (the backstop's SIGKILL escalation, or
+          # the runner OOM-killing a huge scan). Both point at the same fix.
+          echo "::error::Scan was aborted (exit $EXIT_CODE) — it exceeded the ${SCAN_TIMEOUT}s time limit or exhausted runner resources. For larger repositories, re-run with 'dir:' pointing to a smaller subdirectory of your repo (or raise 'scan-timeout')."
+          echo "scan-success=false" >> $GITHUB_ENV
+          exit 1
         else
           echo "Scan failed with exit code $EXIT_CODE."
           echo "scan-success=false" >> $GITHUB_ENV
