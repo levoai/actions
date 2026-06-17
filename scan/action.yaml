@@ -37,12 +37,25 @@ runs:
   using: 'composite'
   steps:
     - id: run-scan-repo
+      shell: bash
+      # Inputs that influence shell control flow are passed via env: rather
+      # than direct ${{ }} interpolation into the script body. This avoids
+      # quote/escape edge cases and any chance of shell injection.
+      env:
+        SCAN_TIMEOUT: ${{ inputs.scan-timeout }}
       run: |
         echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
-
-        SCAN_TIMEOUT='${{ inputs.scan-timeout }}'
         echo "Scan timeout: ${SCAN_TIMEOUT}s"
+
+        # Per-run unique container name. The previous hardcoded name
+        # ("levo-code-scanner") would collide on self-hosted runners with
+        # parallel jobs, and the post-run `docker rm -f` could nuke another
+        # job's running container. GITHUB_RUN_ID + GITHUB_RUN_ATTEMPT +
+        # GITHUB_JOB are unique per job execution. We sanitise to keep only
+        # characters Docker allows in container names.
+        CONTAINER_NAME="levo-code-scanner-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-200)
 
         # Outer hard backstop. The scanner enforces its own in-container
         # wall-clock guard (--scan-timeout), but we ALSO wrap `docker run` in
@@ -52,6 +65,13 @@ runs:
         # --kill-after escalates to SIGKILL. Disabled when the timeout is <= 0.
         TIMEOUT_WRAPPER=()
         if [ "$SCAN_TIMEOUT" -gt 0 ] 2>/dev/null; then
+          # GNU `timeout` (coreutils) is pre-installed on ubuntu-* runners but
+          # NOT on macos-* runners. Fail fast with a clear message rather than
+          # exit 127 mid-pipe, which would be confusing.
+          if ! command -v timeout >/dev/null 2>&1; then
+            echo "::error::scan-timeout requires GNU 'timeout' (coreutils), which is not available on this runner (this is common on macOS). Use a Linux runner, install coreutils, or set scan-timeout: 0 to disable the outer backstop."
+            exit 1
+          fi
           BACKSTOP_SECONDS=$(( SCAN_TIMEOUT + 300 ))
           TIMEOUT_WRAPPER=(timeout --signal=SIGTERM --kill-after=30s "${BACKSTOP_SECONDS}s")
         fi
@@ -61,7 +81,7 @@ runs:
         # --scan-timeout flag: an env var is ignored by older scanner images
         # that predate the timeout feature (no regression), while newer images
         # honor it. The outer `timeout` backstop above hard-caps either way.
-        OUTPUT=$("${TIMEOUT_WRAPPER[@]}" docker run --rm --name levo-code-scanner \
+        OUTPUT=$("${TIMEOUT_WRAPPER[@]}" docker run --rm --name "$CONTAINER_NAME" \
           --user "$(id -u):$(id -g)" \
           -e LEVO_BASE_URL=${{ inputs.saas-url }} \
           -e LEVO_SCAN_TIMEOUT="$SCAN_TIMEOUT" \
@@ -77,8 +97,10 @@ runs:
         EXIT_CODE=$?
         echo "$OUTPUT"
 
-        # The container can outlive a killed `docker run` client; make sure it's gone.
-        docker rm -f levo-code-scanner >/dev/null 2>&1 || true
+        # The container can outlive a killed `docker run` client; make sure
+        # the one WE started is gone. Targeting the per-run name avoids
+        # interfering with concurrent jobs on the same Docker daemon.
+        docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
         if [ $EXIT_CODE -eq 0 ]; then
           echo "Scan succeeded."
@@ -95,4 +117,3 @@ runs:
           echo "scan-success=false" >> $GITHUB_ENV
           exit 1
         fi
-      shell: bash
