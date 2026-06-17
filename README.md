@@ -184,12 +184,25 @@ Requires a Levo account (Authorization Key + Organization ID) and Docker on the 
 
     # [Optional] Target environment. Default: staging.
     env-name: ''
+
+    # [Optional] Wall-clock limit (seconds) for the analysis phase. If the scan
+    # exceeds it, it is aborted and the step fails with guidance to re-run
+    # against a smaller `dir`. Default: 3600 (1 hour). Set to 0 to disable.
+    scan-timeout: '3600'
 ```
 <!-- end usage -->
 
 ### Output
 
 The action imports discovered endpoints into the Levo dashboard under the application named by `app-name`, in the environment named by `env-name`.
+
+### Scan timeouts
+
+A scan is capped at **1 hour** by default. If the analysis phase runs longer, the scan and its container are terminated and the step fails (exit code `124`) with:
+
+> Scan exceeded the time limit and was aborted. For larger repositories, re-run with `dir:` pointing to a smaller subdirectory of your repo.
+
+This protects against pathological repositories where a scan can hang for hours. To scan a large monorepo, point `dir:` at the specific service/subdirectory you care about. Raise or disable the cap with `scan-timeout` (set to `0` to disable). The action also enforces a hard outer backstop a few minutes past the budget, so a runaway scan can never block your workflow indefinitely.
 
 ## DAST Scanner
 
