@@ -33,6 +33,11 @@ runs:
   using: 'composite'
   steps:
     - id: run-scan-repo
+      # Hard backstop in case the scanner's own SIGALRM-based timeout (default
+      # 3600s, configurable via LEVO_SCAN_TIMEOUT) fails to terminate atom —
+      # e.g. when atom is wedged in native code that ignores SIGTERM. 65 min =
+      # scanner default (60) + 5 min grace for SIGKILL escalation and cleanup.
+      timeout-minutes: 65
       run: |
         echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
