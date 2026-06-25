@@ -33,6 +33,18 @@ inputs:
     description: 'Wall-clock limit (seconds) for the analysis phase. If the scan exceeds it, it is aborted with a message to re-run against a smaller `dir`, and the step fails. Mirrors the scanner default of 1 hour. Set to 0 (or negative) to disable.'
     required: false
     default: '3600'
+  auto-split:
+    description: 'When set to "true", runs a serialized per-folder scan instead of analysing the whole repo at once. Useful for very large JS/TS codebases where atom hangs on a single-pass analysis. Each top-level folder is scanned separately and the resulting OpenAPI specs are merged. Defaults to "false".'
+    required: false
+    default: 'false'
+  mandatory-scan:
+    description: 'Comma-separated list of top-level folders that must be scanned even if the whole-folder scan times out — the scanner drills one level deep into each such folder and scans its subfolders separately. Only effective when `auto-split` is "true".'
+    required: false
+    default: ''
+  per-folder-timeout:
+    description: 'Per-folder wall-clock timeout (seconds) when `auto-split` is "true". Defaults to 600 (10 minutes). The outer `scan-timeout` still caps total runtime.'
+    required: false
+    default: '600'
 runs:
   using: 'composite'
   steps:
@@ -43,10 +55,20 @@ runs:
       # quote/escape edge cases and any chance of shell injection.
       env:
         SCAN_TIMEOUT: ${{ inputs.scan-timeout }}
+        AUTO_SPLIT: ${{ inputs.auto-split }}
+        MANDATORY_SCAN: ${{ inputs.mandatory-scan }}
+        PER_FOLDER_TIMEOUT: ${{ inputs.per-folder-timeout }}
       run: |
         echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
         echo "Scan timeout: ${SCAN_TIMEOUT}s"
+        echo "Auto-split: ${AUTO_SPLIT}"
+        if [ "$AUTO_SPLIT" = "true" ]; then
+          echo "Per-folder timeout: ${PER_FOLDER_TIMEOUT}s"
+          if [ -n "$MANDATORY_SCAN" ]; then
+            echo "Mandatory-scan folders: ${MANDATORY_SCAN}"
+          fi
+        fi
 
         # Per-run unique container name. The previous hardcoded name
         # ("levo-code-scanner") would collide on self-hosted runners with
@@ -76,6 +98,21 @@ runs:
           TIMEOUT_WRAPPER=(timeout --signal=SIGTERM --kill-after=30s "${BACKSTOP_SECONDS}s")
         fi
 
+        # Build the optional auto-split CLI flags so that older scanner images
+        # (which don't know about --auto-split / --mandatory-scan / --per-folder-
+        # timeout) keep working unchanged. The flags are appended only when the
+        # corresponding inputs are set on the action.
+        EXTRA_FLAGS=()
+        if [ "$AUTO_SPLIT" = "true" ]; then
+          EXTRA_FLAGS+=(--auto-split)
+          if [ -n "$PER_FOLDER_TIMEOUT" ] && [ "$PER_FOLDER_TIMEOUT" != "0" ]; then
+            EXTRA_FLAGS+=(--per-folder-timeout "$PER_FOLDER_TIMEOUT")
+          fi
+          if [ -n "$MANDATORY_SCAN" ]; then
+            EXTRA_FLAGS+=(--mandatory-scan "$MANDATORY_SCAN")
+          fi
+        fi
+
         set +e
         # The timeout is passed via the LEVO_SCAN_TIMEOUT env var rather than the
         # --scan-timeout flag: an env var is ignored by older scanner images
@@ -93,7 +130,8 @@ runs:
           --dir "${{ inputs.dir }}" \
           --env-name ${{ inputs.env-name }} \
           -k ${{ inputs.authorization-key }} \
-          -o ${{ inputs.organization-id }} 2>&1)
+          -o ${{ inputs.organization-id }} \
+          "${EXTRA_FLAGS[@]}" 2>&1)
         EXIT_CODE=$?
         echo "$OUTPUT"
 
