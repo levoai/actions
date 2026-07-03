@@ -97,12 +97,17 @@ runs:
             echo "Note: 'app-name' is ignored in spec-file mode — the dashboard app name is taken from the spec's info.title field."
           fi
 
+          # The image's default entrypoint is `levo-code-scan`, which is a
+          # shortcut that routes directly to the `code` subcommand. To reach
+          # the `schema` subcommand we must override the entrypoint to
+          # `levo-code-scanner` (the full click group).
           set +e
           OUTPUT=$(docker run --rm --name "$CONTAINER_NAME" \
             --user "$(id -u):$(id -g)" \
             -e LEVO_BASE_URL=${{ inputs.saas-url }} \
             -e TERM=xterm-256color \
             -v "$PWD":/workspace:rw \
+            --entrypoint levo-code-scanner \
             ${{ inputs.scanner-docker-image }} \
             schema \
             --dir "${{ inputs.dir }}" \
