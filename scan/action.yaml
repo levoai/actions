@@ -8,7 +8,7 @@ inputs:
     description: 'Levo organization ID. Find it at https://app.levo.ai/settings/organization'
     required: true
   app-name:
-    description: 'Application name to display on the Levo dashboard. The application record is created automatically on first scan. Required for source-code scan (Mode A); ignored when `spec-file` is set (Mode B — the app name comes from the spec''s info.title).'
+    description: 'Application name to display on the Levo dashboard. The application record is created automatically on first scan. Required for source-code scan (Mode A). Optional in Mode B (`spec-file` set): if provided, overrides the spec''s info.title on the dashboard; if omitted, the app name is taken from info.title.'
     required: false
     default: ''
   language:
@@ -94,13 +94,24 @@ runs:
           echo "Importing existing spec '${SPEC_FILE}' (env: ${{ inputs.env-name }})"
           echo "Using image: ${{ inputs.scanner-docker-image }}"
           if [ -n "${{ inputs.app-name }}" ]; then
-            echo "Note: 'app-name' is ignored in spec-file mode — the dashboard app name is taken from the spec's info.title field."
+            echo "Overriding dashboard app name with '${{ inputs.app-name }}' (instead of the spec's info.title)."
           fi
 
           # The image's default entrypoint is `levo-code-scan`, which is a
           # shortcut that routes directly to the `code` subcommand. To reach
           # the `schema` subcommand we must override the entrypoint to
           # `levo-code-scanner` (the full click group).
+          #
+          # If `app-name` is set on the action, forward it as --app-name so
+          # the scanner overrides the spec's info.title. When empty, we
+          # DON'T pass the flag at all — otherwise the CLI would treat the
+          # empty string as an override and set the dashboard app name to
+          # blank.
+          APP_NAME_FLAGS=()
+          if [ -n "${{ inputs.app-name }}" ]; then
+            APP_NAME_FLAGS=(--app-name "${{ inputs.app-name }}")
+          fi
+
           set +e
           OUTPUT=$(docker run --rm --name "$CONTAINER_NAME" \
             --user "$(id -u):$(id -g)" \
@@ -113,6 +124,7 @@ runs:
             --dir "${{ inputs.dir }}" \
             --env-name ${{ inputs.env-name }} \
             --spec-file "$SPEC_FILE" \
+            "${APP_NAME_FLAGS[@]}" \
             -k ${{ inputs.authorization-key }} \
             -o ${{ inputs.organization-id }} 2>&1)
           EXIT_CODE=$?

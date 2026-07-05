@@ -194,8 +194,9 @@ Requires a Levo account (Authorization Key + Organization ID) and Docker on the 
     # your repository (e.g. "docs/openapi.yaml" or just "openapi.yaml"). When
     # set, the action switches to spec-import mode (Mode B): the source-code
     # scan is skipped and this single spec file is uploaded directly to the
-    # Levo dashboard. In Mode B, `app-name` and `language` are ignored — the
-    # dashboard app name is taken from the spec's info.title field.
+    # Levo dashboard. In Mode B, `language` is ignored and `app-name` is
+    # optional — if provided it overrides the spec's info.title on the
+    # dashboard, otherwise the app name is taken from info.title.
     spec-file: ''
 ```
 <!-- end usage -->
@@ -209,7 +210,7 @@ The action imports discovered endpoints into the Levo dashboard under the applic
 The action supports two modes:
 
 - **Mode A (default) — source-code scan.** Runs the atom-based analyzer on your repository, generates an OpenAPI spec, and uploads it. Set `language` (and optionally `dir`) to use this mode.
-- **Mode B — spec-file import.** Skips the source-code scan and uploads an existing OpenAPI/Swagger spec that already lives in your repo. Set `spec-file` to the path (e.g. `docs/openapi.yaml`) or bare filename (e.g. `openapi.yaml`) of your spec. Bare filenames are searched under `dir` and the shallowest match wins; if two files match at the same shallowest depth the action fails and asks for an explicit path.
+- **Mode B — spec-file import.** Skips the source-code scan and uploads an existing OpenAPI/Swagger spec that already lives in your repo. Set `spec-file` to the path (e.g. `docs/openapi.yaml`) or bare filename (e.g. `openapi.yaml`) of your spec. Bare filenames are searched under `dir` and the shallowest match wins; if two files match at the same shallowest depth the action fails and asks for an explicit path. The dashboard app name defaults to the spec's `info.title`; set `app-name` to override it (useful when you don't own the spec or can't safely edit `info.title`).
 
 Mode B is a good fit when you already maintain a hand-written OpenAPI spec and want the workflow to be a fast, deterministic upload rather than a source-code scan.
 
