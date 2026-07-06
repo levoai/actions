@@ -8,11 +8,13 @@ inputs:
     description: 'Levo organization ID. Find it at https://app.levo.ai/settings/organization'
     required: true
   app-name:
-    description: 'Application name to display on the Levo dashboard. The application record is created automatically on first scan.'
-    required: true
+    description: 'Application name to display on the Levo dashboard. The application record is created automatically on first scan. Required for source-code scan (Mode A). Optional in Mode B (`spec-file` set): if provided, overrides the spec''s info.title on the dashboard; if omitted, the app name is taken from info.title.'
+    required: false
+    default: ''
   language:
-    description: 'Programming language of the repository. Supported: java, jar, javascript, typescript, python, c, cpp, csharp, php, ruby, apk'
-    required: true
+    description: 'Programming language of the repository. Supported: java, jar, javascript, typescript, python, c, cpp, csharp, php, ruby, apk. Required for source-code scan (Mode A); ignored when `spec-file` is set (Mode B).'
+    required: false
+    default: ''
   dir:
     description: 'Relative subdirectory (e.g. ./path/to/sub-directory) to scan. Use "." to scan the repository root.'
     required: false
@@ -45,6 +47,18 @@ inputs:
     description: 'Per-folder wall-clock timeout (seconds) when `auto-split` is "true". Defaults to 600 (10 minutes). The outer `scan-timeout` still caps total runtime.'
     required: false
     default: '600'
+  spec-file:
+    description: >
+      Optional. Path or filename of an existing OpenAPI/Swagger spec inside
+      your repository (e.g. "docs/openapi.yaml" or just "openapi.yaml"). When
+      set, the action switches to spec-import mode (Mode B): it skips the
+      source-code scan and imports this single spec file directly to the Levo
+      dashboard. The `language`, `dir`, `auto-split`, `mandatory-scan`,
+      `per-folder-timeout`, and `scan-timeout` inputs are ignored in this
+      mode. The dashboard application name is derived from the spec's
+      `info.title`. Leave unset for the default Mode A source-code scan.
+    required: false
+    default: ''
 runs:
   using: 'composite'
   steps:
@@ -58,7 +72,92 @@ runs:
         AUTO_SPLIT: ${{ inputs.auto-split }}
         MANDATORY_SCAN: ${{ inputs.mandatory-scan }}
         PER_FOLDER_TIMEOUT: ${{ inputs.per-folder-timeout }}
+        SPEC_FILE: ${{ inputs.spec-file }}
       run: |
+        # Per-run unique container name (shared by both modes). The previous
+        # hardcoded name ("levo-code-scanner") would collide on self-hosted
+        # runners with parallel jobs, and the post-run `docker rm -f` could
+        # nuke another job's running container. GITHUB_RUN_ID +
+        # GITHUB_RUN_ATTEMPT + GITHUB_JOB are unique per job execution; we
+        # sanitise to keep only characters Docker allows in container names.
+        CONTAINER_NAME="levo-code-scanner-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-200)
+
+        # ------------------------------------------------------------------
+        # Mode B — spec-file import
+        # ------------------------------------------------------------------
+        # When `spec-file` is set, skip the atom source-code scan entirely
+        # and invoke the scanner's `schema` subcommand to upload one existing
+        # OpenAPI/Swagger spec straight from the repo. Uploads are fast HTTP
+        # calls, so the timeout / auto-split machinery does not apply here.
+        if [ -n "$SPEC_FILE" ]; then
+          echo "Importing existing spec '${SPEC_FILE}' (env: ${{ inputs.env-name }})"
+          echo "Using image: ${{ inputs.scanner-docker-image }}"
+          if [ -n "${{ inputs.app-name }}" ]; then
+            echo "Overriding dashboard app name with '${{ inputs.app-name }}' (instead of the spec's info.title)."
+          fi
+
+          # The image's default entrypoint is `levo-code-scan`, which is a
+          # shortcut that routes directly to the `code` subcommand. To reach
+          # the `schema` subcommand we must override the entrypoint to
+          # `levo-code-scanner` (the full click group).
+          #
+          # If `app-name` is set on the action, forward it as --app-name so
+          # the scanner overrides the spec's info.title. When empty, we
+          # DON'T pass the flag at all — otherwise the CLI would treat the
+          # empty string as an override and set the dashboard app name to
+          # blank.
+          APP_NAME_FLAGS=()
+          if [ -n "${{ inputs.app-name }}" ]; then
+            APP_NAME_FLAGS=(--app-name "${{ inputs.app-name }}")
+          fi
+
+          set +e
+          OUTPUT=$(docker run --rm --name "$CONTAINER_NAME" \
+            --user "$(id -u):$(id -g)" \
+            -e LEVO_BASE_URL=${{ inputs.saas-url }} \
+            -e TERM=xterm-256color \
+            -v "$PWD":/workspace:rw \
+            --entrypoint levo-code-scanner \
+            ${{ inputs.scanner-docker-image }} \
+            schema \
+            --dir "${{ inputs.dir }}" \
+            --env-name ${{ inputs.env-name }} \
+            --spec-file "$SPEC_FILE" \
+            "${APP_NAME_FLAGS[@]}" \
+            -k ${{ inputs.authorization-key }} \
+            -o ${{ inputs.organization-id }} 2>&1)
+          EXIT_CODE=$?
+          echo "$OUTPUT"
+
+          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
+          if [ $EXIT_CODE -eq 0 ]; then
+            echo "Spec '${SPEC_FILE}' imported successfully."
+            echo "scan-success=true" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          echo "::error::Spec import failed (exit $EXIT_CODE) for '${SPEC_FILE}'. See the log above for the underlying error from the scanner."
+          echo "scan-success=false" >> $GITHUB_ENV
+          exit 1
+        fi
+
+        # ------------------------------------------------------------------
+        # Mode A — source-code scan (default, unchanged behavior)
+        # ------------------------------------------------------------------
+        # `app-name` and `language` are required for Mode A; catch the empty
+        # case up-front rather than letting the container fail with a
+        # less-obvious error.
+        if [ -z "${{ inputs.app-name }}" ]; then
+          echo "::error::'app-name' is required for source-code scan (Mode A). Set 'app-name:' to the application name you want to display on the Levo dashboard, or use 'spec-file:' to import an existing OpenAPI spec instead."
+          exit 1
+        fi
+        if [ -z "${{ inputs.language }}" ]; then
+          echo "::error::'language' is required for source-code scan (Mode A). Either set 'language:' (e.g. javascript, typescript, java, python) or use 'spec-file:' to import an existing OpenAPI spec instead."
+          exit 1
+        fi
+
         echo "Scanning '${{ inputs.app-name }}' (language: ${{ inputs.language }}, dir: ${{ inputs.dir }}, env: ${{ inputs.env-name }})"
         echo "Using image: ${{ inputs.scanner-docker-image }}"
         echo "Scan timeout: ${SCAN_TIMEOUT}s"
@@ -69,15 +168,6 @@ runs:
             echo "Mandatory-scan folders: ${MANDATORY_SCAN}"
           fi
         fi
-
-        # Per-run unique container name. The previous hardcoded name
-        # ("levo-code-scanner") would collide on self-hosted runners with
-        # parallel jobs, and the post-run `docker rm -f` could nuke another
-        # job's running container. GITHUB_RUN_ID + GITHUB_RUN_ATTEMPT +
-        # GITHUB_JOB are unique per job execution. We sanitise to keep only
-        # characters Docker allows in container names.
-        CONTAINER_NAME="levo-code-scanner-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_JOB}"
-        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | tr -c 'A-Za-z0-9_.-' '-' | cut -c1-200)
 
         # Outer hard backstop. The scanner enforces its own in-container
         # wall-clock guard (--scan-timeout), but we ALSO wrap `docker run` in
