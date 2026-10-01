@@ -237,7 +237,7 @@ This protects against pathological repositories where a scan can hang for hours.
 
 This action runs dynamic application security testing (DAST) on your web app or API and reports findings to your [Levo](https://levo.ai) organization dashboard.
 
-This action will require Docker to be available on the runner. Providing a Levo account (`authorization-key` + `organization-id`) is optional but enables sending findings to the Levo platform.
+This action will require Docker to be available on the runner. A Levo account is required: `authorization-key` and `organization-id` must be set. The scanner does not run without them. Store them as repository secrets.
 
 ### Usage
 
@@ -248,11 +248,11 @@ This action will require Docker to be available on the runner. Providing a Levo 
     # URL of the application to scan.
     target-url: 'https://your-app.example.com'
 
-    # [OPTIONAL] Levo API key. Get it from https://app.levo.ai/settings/keys
-    authorization-key: ''
+    # [REQUIRED] Levo API key. Get it from https://app.levo.ai/settings/keys
+    authorization-key: ${{ secrets.LEVOAI_AUTH_KEY }}
 
-    # [OPTIONAL] Levo organization ID. Get it from https://app.levo.ai/settings/organization
-    organization-id: ''
+    # [REQUIRED] Levo organization ID. Get it from https://app.levo.ai/settings/organization
+    organization-id: ${{ secrets.LEVOAI_ORG_ID }}
 
     # [OPTIONAL] Environment ID for Levo integration
     env-id: ''
