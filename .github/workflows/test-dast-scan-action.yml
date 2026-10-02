@@ -23,7 +23,7 @@ on:
       target-url:
         description: 'URL to scan for testing'
         required: false
-        default: 'https://juice-shop-spec-building.levoai.app/'
+        default: 'https://levoforge.levoai.app/'
 
 jobs:
   run-dast-scan:
@@ -41,7 +41,7 @@ jobs:
         uses: ./dast-scan
         with:
           # Hyphenated workflow_dispatch inputs must use bracket form: github.event.inputs['target-url']
-          target-url: ${{ github.event.inputs['target-url'] || 'https://juice-shop-spec-building.levoai.app/' }}
+          target-url: ${{ github.event.inputs['target-url'] || 'https://levoforge.levoai.app/' }}
           # Exercise the new config-file path with a tiny config so the scan
           # completes fast (and so we can confirm the YAML is actually applied).
           config-file: 'dast-scan/test/levo-dast.test.yml'
@@ -101,10 +101,10 @@ jobs:
           echo ""
           echo "=================================================================================="
       - name: Assert config-file is honored
-        # Verify a config-file value actually reaches the engine. We can't use
-        # the juice-shop scan's report for this: that SPA never settles, so its
-        # crawl times out on page 1 regardless of config, leaving pages/depth
-        # indistinguishable. Instead, run a fast bounded crawl of a static target
+        # Verify a config-file value actually reaches the engine. We don't use
+        # the main scan's report for this, because its page/depth counts depend
+        # on the target site rather than on the config. Instead, run a fast
+        # bounded crawl of a static target
         # and check the crawler's startup log, which prints the effective
         # max_pages. The test config sets max_pages=1, so a working config-file
         # shows "Max pages: 1"; if --config were dropped it would show the

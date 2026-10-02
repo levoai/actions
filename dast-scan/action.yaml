@@ -10,11 +10,11 @@ inputs:
     description: 'URL of the application to scan'
     required: true
   authorization-key:
-    description: 'Levo API key for advanced features. Get it from https://app.levo.ai/settings/keys'
-    required: false
+    description: 'Levo API key(required). Get it from https://app.levo.ai/settings/keys'
+    required: true
   organization-id:
     description: 'Levo organization ID. Get it from https://app.levo.ai/settings/organization'
-    required: false
+    required: true
   saas-url:
     description: 'Levo SaaS base URL'
     required: true
@@ -77,7 +77,7 @@ inputs:
 
   # --- App authentication (CLI scan) ---
   auth:
-    description: 'Authentication strategy (`--auth`, e.g. none, basic, bearer, form).'
+    description: 'Authentication strategy (`--auth`, e.g. none, form, token, oauth, ai).'
     required: false
   username:
     description: 'Username for authenticated scans (`LEVOAI_USERNAME`).'
