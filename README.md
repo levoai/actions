@@ -165,7 +165,7 @@ Requires a Levo account (Authorization Key + Organization ID) and Docker on the 
 
 <!-- start usage -->
 ```yaml
-- uses: levoai/actions/scan@v2.1.2
+- uses: levoai/actions/scan@v2
   with:
     # Levo CLI authorization key. Get yours at https://app.levo.ai/settings/keys
     authorization-key: ''
